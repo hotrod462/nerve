@@ -1,0 +1,16 @@
+pairs:
+  - id: classical_vs_edm
+    a: musopen_egmont
+    b: pixabay_forever_edm
+
+  - id: classical_vs_hiphop
+    a: musopen_egmont
+    b: bopd_aint_no_thing
+
+  - id: edm_vs_jazz
+    a: pixabay_forever_edm
+    b: pkjazz_spirit_of_the_road
+
+  - id: boom_bap_vs_lofi
+    a: bopd_aint_no_thing
+    b: holizna_endless_grind

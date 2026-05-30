@@ -1,0 +1,18 @@
+# Planned contrast runs for examples/music_genre_contrast.py
+pairs:
+  - id: classical_vs_edm
+    a: musopen_egmont
+    b: pixabay_forever_edm
+    headline: true
+
+  - id: classical_vs_boombap
+    a: musopen_egmont
+    b: bopd_aint_no_thing
+
+  - id: edm_vs_jazz
+    a: pixabay_forever_edm
+    b: pkjazz_spirit_of_the_road
+
+  - id: boombap_vs_lofi
+    a: bopd_aint_no_thing
+    b: holizna_endless_grind

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.venv
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# ML weights and caches
+data/weights/*
+data/features/*
+data/outputs/*
+!data/**/.gitkeep
+
+# Stimuli (processed audio not committed)
+stimuli/raw/*
+stimuli/work/*
+stimuli/processed/*
+stimuli/user/**/*
+!stimuli/manifest.yaml
+!stimuli/manifest.user.yaml.example
+!stimuli/README.md
+!stimuli/LICENSES.md
+
+# Env
+.env
+.env.local
+!/.env.example
+!web/.env.example
+
+# Web
+web/node_modules/
+web/.next/
+web/out/
+
+# OS
+.DS_Store

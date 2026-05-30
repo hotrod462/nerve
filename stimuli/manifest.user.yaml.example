@@ -1,0 +1,24 @@
+# v2 — personal/commercial tracks (gitignored when copied to manifest.user.yaml)
+bundle: user_v2
+tracks:
+  - id: succession_theme
+    path: stimuli/user/processed/succession_theme_45s.wav
+    genre: tv_score
+    user_supplied: true
+    license: "User-owned — not redistributed"
+    trim_start: "00:00:15"
+
+  - id: avicii_levels
+    path: stimuli/user/processed/avicii_levels_45s.wav
+    genre: dance_edm
+    user_supplied: true
+    license: "User-owned — not redistributed"
+    trim_start: "00:01:00"
+
+  - id: avicii_wake_me_up
+    path: stimuli/user/processed/avicii_wake_me_up_45s.wav
+    genre: dance_edm
+    user_supplied: true
+    license: "User-owned — not redistributed"
+    trim_start: "00:00:45"
+    # v2 lyrics ablation: set include_lyrics: true + HF token
