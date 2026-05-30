@@ -3,6 +3,8 @@
 import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import { EngagementTimeline } from "@/components/EngagementTimeline";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import type { BrainViewerProps } from "@/components/BrainViewer";
 import type { EngagementData } from "@/lib/engagement";
 
@@ -31,7 +33,7 @@ export function TrackEngagementPanel({
 
   return (
     <>
-      <div className="track-hero">
+      <div className="mt-5">
         <BrainViewer
           {...brainProps}
           frame={frame}
@@ -46,12 +48,17 @@ export function TrackEngagementPanel({
           onSeek={handleSeek}
         />
       ) : (
-        <div className="card engagement-panel" style={{ marginTop: "1rem" }}>
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.85rem" }}>
-            Re-run <code>nerve export-web</code> to generate network engagement
-            traces.
-          </p>
-        </div>
+        <Card className="mt-4">
+          <CardContent className="pt-6">
+            <Alert>
+              <AlertTitle>Engagement data unavailable</AlertTitle>
+              <AlertDescription>
+                Re-run <code>nerve export-web</code> to generate network
+                engagement traces.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
       )}
     </>
   );

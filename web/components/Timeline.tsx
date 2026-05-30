@@ -1,5 +1,9 @@
 "use client";
 
+import { Pause, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+
 export function Timeline({
   frame,
   total,
@@ -13,21 +17,32 @@ export function Timeline({
   onFrame: (f: number) => void;
   onPlaying: (p: boolean) => void;
 }) {
+  const max = Math.max(0, total - 1);
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.5rem" }}>
-      <button type="button" onClick={() => onPlaying(!playing)}>
-        {playing ? "Pause" : "Play"}
-      </button>
-      <input
-        type="range"
+    <div className="mt-2 flex items-center gap-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        onClick={() => onPlaying(!playing)}
+        aria-label={playing ? "Pause" : "Play"}
+      >
+        {playing ? <Pause /> : <Play />}
+      </Button>
+      <Slider
+        className="flex-1"
         min={0}
-        max={Math.max(0, total - 1)}
-        value={frame}
-        onChange={(e) => onFrame(Number(e.target.value))}
-        style={{ flex: 1 }}
+        max={max}
+        step={1}
+        value={[frame]}
+        onValueChange={(value) => {
+          const next = Array.isArray(value) ? value[0] : value;
+          onFrame(next ?? 0);
+        }}
       />
-      <span style={{ fontSize: "0.85rem", color: "#9aa0a6" }}>
-        t={frame}s / {Math.max(0, total - 1)}s
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+        t={frame}s / {max}s
       </span>
     </div>
   );

@@ -6,6 +6,9 @@ import {
   loadRegionLabels,
   type MeshAtlasUrls,
 } from "@/lib/atlas";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BrainColorbar } from "./BrainColorbar";
 import { StimulusAudio } from "./StimulusAudio";
 import { Timeline } from "./Timeline";
@@ -371,85 +374,106 @@ export function BrainViewer({
 
   if (error) {
     return (
-      <div className="card brain-viewer-card" style={{ minHeight: height }}>
-        <p style={{ color: "#f0c080" }}>Brain viewer: {error}</p>
-        <p style={{ fontSize: "0.85rem", color: "#9aa0a6" }}>
-          Re-run <code>nerve export-web</code> to regenerate mesh bundles.
-        </p>
-      </div>
+      <Card style={{ minHeight: height }}>
+        <CardContent className="pt-6">
+          <Alert variant="destructive">
+            <AlertTitle>Brain viewer error</AlertTitle>
+            <AlertDescription>
+              {error}. Re-run <code>nerve export-web</code> to regenerate mesh
+              bundles.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="card brain-viewer-card">
-      <div className="brain-toolbar">
-        <div className="brain-toolbar__group">
-          <span className="brain-toolbar__title">Surface</span>
-          {(["pial", "half", "inflated"] as SurfaceMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className={`brain-toolbar__btn${surface === mode ? " is-active" : ""}`}
-              onClick={() => setSurface(mode)}
-              disabled={!mesh?.surfaces?.[mode]}
-            >
-              {SURFACE_LABELS[mode]}
-            </button>
-          ))}
+    <Card size="sm">
+      <CardContent className="space-y-3 pt-0">
+        <div className="brain-toolbar">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                Surface
+              </span>
+              <ToggleGroup
+                value={[surface]}
+                onValueChange={(values) => {
+                  const next = values[0] as SurfaceMode | undefined;
+                  if (next) setSurface(next);
+                }}
+                variant="outline"
+                size="sm"
+              >
+                {(["pial", "half", "inflated"] as SurfaceMode[]).map((mode) => (
+                  <ToggleGroupItem
+                    key={mode}
+                    value={mode}
+                    disabled={!mesh?.surfaces?.[mode]}
+                  >
+                    {SURFACE_LABELS[mode]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            {hasRegionLabels && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Labels
+                </span>
+                <ToggleGroup
+                  value={[showLabels ? "on" : "off"]}
+                  onValueChange={(values) => setShowLabels(values[0] === "on")}
+                  variant="outline"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="off">Off</ToggleGroupItem>
+                  <ToggleGroupItem value="on">On</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+            {hasFaceOverlay && surface !== "inflated" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Face
+                </span>
+                <ToggleGroup
+                  value={[showFace ? "on" : "off"]}
+                  onValueChange={(values) => setShowFace(values[0] === "on")}
+                  variant="outline"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="off">Off</ToggleGroupItem>
+                  <ToggleGroupItem value="on">On</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+          </div>
+          <BrainColorbar colormap={colormap} vmin={vmin} vmax={vmax} />
         </div>
-        {hasRegionLabels && (
-          <div className="brain-toolbar__group">
-            <span className="brain-toolbar__title">Labels</span>
-            {(["off", "on"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className={`brain-toolbar__btn${(mode === "on") === showLabels ? " is-active" : ""}`}
-                onClick={() => setShowLabels(mode === "on")}
-              >
-                {mode === "off" ? "Off" : "On"}
-              </button>
-            ))}
-          </div>
-        )}
-        {hasFaceOverlay && surface !== "inflated" && (
-          <div className="brain-toolbar__group">
-            <span className="brain-toolbar__title">Face</span>
-            {(["off", "on"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className={`brain-toolbar__btn${(mode === "on") === showFace ? " is-active" : ""}`}
-                onClick={() => setShowFace(mode === "on")}
-              >
-                {mode === "off" ? "Off" : "On"}
-              </button>
-            ))}
-          </div>
-        )}
-        <BrainColorbar colormap={colormap} vmin={vmin} vmax={vmax} />
-      </div>
 
-      <div ref={containerRef} className="brain-viewer-wrap" style={{ height }}>
-        <canvas ref={canvasRef} className="brain-canvas" />
-      </div>
+        <div ref={containerRef} className="brain-viewer-wrap" style={{ height }}>
+          <canvas ref={canvasRef} className="brain-canvas" />
+        </div>
 
-      <StimulusAudio
-        src={stimulusAudioUrl}
-        frame={frame}
-        total={totalFrames}
-        playing={playing}
-        fps={fps}
-        onSeek={setFrame}
-      />
+        <StimulusAudio
+          src={stimulusAudioUrl}
+          frame={frame}
+          total={totalFrames}
+          playing={playing}
+          fps={fps}
+          onSeek={setFrame}
+        />
 
-      <Timeline
-        frame={frame}
-        total={totalFrames}
-        playing={playing}
-        onFrame={setFrame}
-        onPlaying={setPlaying}
-      />
-    </div>
+        <Timeline
+          frame={frame}
+          total={totalFrames}
+          playing={playing}
+          onFrame={setFrame}
+          onPlaying={setPlaying}
+        />
+      </CardContent>
+    </Card>
   );
 }

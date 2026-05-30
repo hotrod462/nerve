@@ -6,6 +6,14 @@ import {
   type EngagementData,
   type NetworkEngagementTrace,
 } from "@/lib/engagement";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface EngagementTimelineProps {
   engagement: EngagementData;
@@ -35,7 +43,6 @@ function tracePath(values: number[], width: number, height: number): string {
 }
 
 function NetworkRow({
-  net,
   trace,
   nTrs,
   color,
@@ -114,7 +121,7 @@ function NetworkRow({
             y1={0}
             x2={playheadX}
             y2={CHART_H}
-            stroke="var(--fg)"
+            stroke="var(--foreground)"
             strokeWidth={1}
             opacity={0.85}
           />
@@ -139,58 +146,60 @@ export function EngagementTimeline({
 }: EngagementTimelineProps) {
   const frame = Math.max(0, Math.min(engagement.n_trs - 1, currentFrame));
   const salienceSet = new Set(engagement.derived.salience_events.trs);
+  const dominantColor =
+    ENGAGEMENT_COLORS[engagement.derived.dominant_network_tr[frame]] ??
+    "var(--foreground)";
 
   return (
-    <div className="card engagement-panel">
-      <div className="engagement-panel__header">
-        <div>
-          <h3 style={{ margin: 0 }}>Network engagement</h3>
-          <p className="engagement-panel__disclaimer">{engagement.disclaimer}</p>
+    <Card className="mt-4">
+      <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle>Network engagement</CardTitle>
+          <CardDescription>{engagement.disclaimer}</CardDescription>
         </div>
-        <div className="engagement-panel__dominant">
-          <span className="engagement-panel__dominant-label">Now</span>
-          <span
-            className="engagement-panel__dominant-value"
-            style={{
-              color:
-                ENGAGEMENT_COLORS[engagement.derived.dominant_network_tr[frame]] ??
-                "var(--fg)",
-            }}
-          >
+        <div className="flex flex-col items-start gap-0.5 sm:items-end">
+          <span className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
+            Now
+          </span>
+          <span className="text-lg font-semibold" style={{ color: dominantColor }}>
             {engagement.networks[engagement.derived.dominant_network_tr[frame]]
               ?.headline ?? "—"}
           </span>
         </div>
-      </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="engagement-rows">
+          {ENGAGEMENT_NETWORK_ORDER.map((net) => {
+            const trace = engagement.networks[net];
+            if (!trace) return null;
+            return (
+              <NetworkRow
+                key={net}
+                net={net}
+                trace={trace}
+                nTrs={engagement.n_trs}
+                color={ENGAGEMENT_COLORS[net] ?? "var(--primary)"}
+                currentFrame={frame}
+                onSeek={onSeek}
+              />
+            );
+          })}
+        </div>
 
-      <div className="engagement-rows">
-        {ENGAGEMENT_NETWORK_ORDER.map((net) => {
-          const trace = engagement.networks[net];
-          if (!trace) return null;
-          return (
-            <NetworkRow
-              key={net}
-              net={net}
-              trace={trace}
-              nTrs={engagement.n_trs}
-              color={ENGAGEMENT_COLORS[net] ?? "var(--accent)"}
-              currentFrame={frame}
-              onSeek={onSeek}
-            />
-          );
-        })}
-      </div>
-
-      {engagement.derived.salience_events.trs.length > 0 && (
-        <p className="engagement-panel__events">
-          Surprise events (Δz ≥{" "}
-          {engagement.derived.salience_events.threshold_z_derivative}):{" "}
-          {engagement.derived.salience_events.trs
-            .map((t) => `${t}s`)
-            .join(", ")}
-          {salienceSet.has(frame) ? " · at playhead" : ""}
-        </p>
-      )}
-    </div>
+        {engagement.derived.salience_events.trs.length > 0 && (
+          <>
+            <Separator />
+            <p className="text-xs text-muted-foreground">
+              Surprise events (Δz ≥{" "}
+              {engagement.derived.salience_events.threshold_z_derivative}):{" "}
+              {engagement.derived.salience_events.trs
+                .map((t) => `${t}s`)
+                .join(", ")}
+              {salienceSet.has(frame) ? " · at playhead" : ""}
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

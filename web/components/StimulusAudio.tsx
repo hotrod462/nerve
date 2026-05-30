@@ -1,6 +1,8 @@
 "use client";
 
+import { Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export interface StimulusAudioProps {
   src?: string;
@@ -218,15 +220,26 @@ export function StimulusAudio({
   return (
     <div className="stimulus-audio">
       <div className="stimulus-audio__header">
-        <div className="stimulus-audio__label">Stimulus audio</div>
-        <button
+        <div className="text-xs text-muted-foreground">Stimulus audio</div>
+        <Button
           type="button"
-          className="stimulus-audio__mute"
+          variant={muted ? "outline" : "secondary"}
+          size="xs"
           onClick={toggleMute}
           aria-pressed={!muted}
         >
-          {muted ? "Unmute" : "Mute"}
-        </button>
+          {muted ? (
+            <>
+              <VolumeX />
+              Unmute
+            </>
+          ) : (
+            <>
+              <Volume2 />
+              Mute
+            </>
+          )}
+        </Button>
       </div>
       <div ref={wrapRef} className="stimulus-audio__wave-wrap">
         <canvas

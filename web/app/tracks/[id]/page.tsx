@@ -104,16 +104,22 @@ export default async function TrackPage({
     : undefined;
 
   return (
-    <div>
-      <h1>{run.manifest.stimulus?.id ?? run.id}</h1>
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-        {run.manifest.stimulus?.genre && (
-          <span style={{ color: "#9aa0a6" }}>{run.manifest.stimulus.genre}</span>
-        )}
-        <DeviceBadge
-          resolved={run.manifest.device_report?.resolved}
-          deviceOk={run.manifest.device_report?.device_ok}
-        />
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {run.manifest.stimulus?.id ?? run.id}
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {run.manifest.stimulus?.genre && (
+            <span className="text-sm text-muted-foreground">
+              {run.manifest.stimulus.genre}
+            </span>
+          )}
+          <DeviceBadge
+            resolved={run.manifest.device_report?.resolved}
+            deviceOk={run.manifest.device_report?.device_ok}
+          />
+        </div>
       </div>
 
       <TrackEngagementPanel

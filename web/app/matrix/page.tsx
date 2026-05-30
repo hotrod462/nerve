@@ -1,5 +1,20 @@
 import path from "path";
 import { listRuns, readJsonFile, RUNS_DIR } from "@/lib/loadRun";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface StimulusParcel {
   stimulus_ids: string[];
@@ -15,9 +30,11 @@ export default function MatrixPage() {
 
   if (runs.length === 0 && !matrix) {
     return (
-      <div className="empty">
-        <h1>Matrix explorer</h1>
-        <p>Run predict + export-web on multiple tracks first.</p>
+      <div className="mx-auto max-w-lg space-y-4 py-12 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Matrix explorer</h1>
+        <p className="text-muted-foreground">
+          Run predict + export-web on multiple tracks first.
+        </p>
       </div>
     );
   }
@@ -36,48 +53,56 @@ export default function MatrixPage() {
   const nParcels = matrix?.n_parcels ?? (rows[0]?.length ?? 100);
 
   return (
-    <div>
-      <h1>Matrix explorer</h1>
-      <p style={{ color: "#9aa0a6" }}>
-        Stimulus × parcel ({ids.length}×{nParcels})
-      </p>
-
-      <div className="card" style={{ marginTop: "1rem", overflow: "auto" }}>
-        <table style={{ borderCollapse: "collapse", fontSize: "0.75rem" }}>
-          <thead>
-            <tr>
-              <th style={{ padding: 4, textAlign: "left" }}>Stimulus</th>
-              <th colSpan={Math.min(20, nParcels)} style={{ padding: 4 }}>
-                Parcels (first 20)
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ids.map((id, ri) => (
-              <tr key={id}>
-                <td style={{ padding: 4, borderTop: "1px solid #2a2f3a" }}>{id}</td>
-                {(rows[ri] ?? []).slice(0, 20).map((v, ci) => (
-                  <td
-                    key={ci}
-                    style={{
-                      padding: 4,
-                      borderTop: "1px solid #2a2f3a",
-                      background: `rgba(124, 172, 248, ${Math.min(1, Math.abs(v) * 5)})`,
-                    }}
-                  >
-                    {v.toFixed(2)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Matrix explorer</h1>
+        <p className="text-sm text-muted-foreground">
+          Stimulus × parcel ({ids.length}×{nParcels})
+        </p>
       </div>
 
-      <h2 style={{ marginTop: "2rem" }}>Stimulus similarity (L2)</h2>
-      <div className="card">
-        <SimilarityGrid ids={ids} rows={rows} />
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stimulus</TableHead>
+                <TableHead colSpan={Math.min(20, nParcels)}>
+                  Parcels (first 20)
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ids.map((id, ri) => (
+                <TableRow key={id}>
+                  <TableCell className="font-medium">{id}</TableCell>
+                  {(rows[ri] ?? []).slice(0, 20).map((v, ci) => (
+                    <TableCell
+                      key={ci}
+                      className="text-xs tabular-nums"
+                      style={{
+                        background: `rgba(124, 172, 248, ${Math.min(1, Math.abs(v) * 5)})`,
+                      }}
+                    >
+                      {v.toFixed(2)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Stimulus similarity (L2)</CardTitle>
+          <CardDescription>Pairwise distance heatmap across stimuli.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SimilarityGrid ids={ids} rows={rows} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -102,34 +127,34 @@ function SimilarityGrid({ ids, rows }: { ids: string[]; rows: number[][] }) {
   const max = Math.max(...dist.flat(), 1e-6);
 
   return (
-    <table style={{ borderCollapse: "collapse", fontSize: "0.8rem" }}>
-      <thead>
-        <tr>
-          <th />
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead />
           {ids.map((id) => (
-            <th key={id} style={{ padding: 4, maxWidth: 80, overflow: "hidden" }}>
+            <TableHead key={id} className="max-w-20 truncate">
               {id.slice(0, 12)}
-            </th>
+            </TableHead>
           ))}
-        </tr>
-      </thead>
-      <tbody>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {ids.map((id, i) => (
-          <tr key={id}>
-            <td style={{ padding: 4 }}>{id.slice(0, 14)}</td>
+          <TableRow key={id}>
+            <TableCell className="font-medium">{id.slice(0, 14)}</TableCell>
             {ids.map((_, j) => (
-              <td
+              <TableCell
                 key={j}
+                className="p-1.5"
                 style={{
-                  padding: 6,
                   background: `rgba(240, 120, 80, ${dist[i][j] / max})`,
                 }}
                 title={dist[i][j].toFixed(3)}
               />
             ))}
-          </tr>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

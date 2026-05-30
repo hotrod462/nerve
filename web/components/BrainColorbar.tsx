@@ -21,10 +21,13 @@ export function BrainColorbar({
         : "linear-gradient(to right, #000, #800, #f00, #ff0, #fff)";
 
   return (
-    <div className="brain-colorbar" aria-label={`${label} color scale`}>
-      <span className="brain-colorbar__label">{label}</span>
-      <div className="brain-colorbar__track" style={{ background: gradient }} />
-      <div className="brain-colorbar__ticks">
+    <div className="min-w-40" aria-label={`${label} color scale`}>
+      <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
+      <div
+        className="h-2.5 rounded border border-border"
+        style={{ background: gradient }}
+      />
+      <div className="mt-0.5 flex justify-between text-[0.7rem] text-muted-foreground">
         <span>{vmin.toFixed(3)}</span>
         <span>{vmax.toFixed(3)}</span>
       </div>

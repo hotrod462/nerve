@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { MeshBundle } from "@/components/BrainViewer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const BrainViewer = dynamic(
   () => import("@/components/BrainViewer").then((m) => m.BrainViewer),
@@ -49,10 +50,10 @@ export function CompareClient({
   const c = contrastId ? runMeshBundle(contrastId) : null;
 
   return (
-    <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
-      <div className="grid-2">
-        <div className="card">
-          <h3>{runA}</h3>
+    <div className="mt-4 grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium">{runA}</h2>
           <BrainViewer
             lhMeshUrl={a.lh}
             rhMeshUrl={a.rh}
@@ -63,9 +64,9 @@ export function CompareClient({
             onPlayingChange={setPlaying}
             height={320}
           />
-        </div>
-        <div className="card">
-          <h3>{runB}</h3>
+        </section>
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium">{runB}</h2>
           <BrainViewer
             lhMeshUrl={b.lh}
             rhMeshUrl={b.rh}
@@ -76,11 +77,11 @@ export function CompareClient({
             onPlayingChange={setPlaying}
             height={320}
           />
-        </div>
+        </section>
       </div>
       {c && (
-        <div className="card">
-          <h3>A − B contrast</h3>
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium">A − B contrast</h2>
           <BrainViewer
             lhMeshUrl={c.lh}
             rhMeshUrl={c.rh}
@@ -92,12 +93,15 @@ export function CompareClient({
             onPlayingChange={setPlaying}
             height={320}
           />
-        </div>
+        </section>
       )}
       {!contrastId && (
-        <p style={{ color: "#9aa0a6" }}>
-          Run <code>nerve contrast</code> + <code>export-web</code> for a contrast bundle.
-        </p>
+        <Alert>
+          <AlertDescription>
+            Run <code>nerve contrast</code> + <code>export-web</code> for a
+            contrast bundle.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

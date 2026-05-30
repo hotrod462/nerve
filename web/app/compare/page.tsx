@@ -1,5 +1,12 @@
 import Link from "next/link";
 import { CompareClient } from "./CompareClient";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { listRuns } from "@/lib/loadRun";
 
 export default async function ComparePage({
@@ -20,23 +27,36 @@ export default async function ComparePage({
 
   if (!a || !b) {
     return (
-      <div className="empty">
-        <h1>Compare</h1>
-        <p>Select two tracks via query params: /compare?a=egmont&b=forever_edm</p>
-        <ul>
-          {predRuns.map((r) => (
-            <li key={r.id}>
-              <Link href={`/tracks/${r.id}`}>{r.id}</Link>
-            </li>
-          ))}
-        </ul>
+      <div className="mx-auto max-w-lg space-y-4 py-12 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Compare</h1>
+        <p className="text-muted-foreground">
+          Select two tracks via query params:{" "}
+          <code>/compare?a=egmont&b=forever_edm</code>
+        </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Available tracks</CardTitle>
+            <CardDescription>Pick two runs to compare side by side.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-left text-sm">
+              {predRuns.map((r) => (
+                <li key={r.id}>
+                  <Link href={`/tracks/${r.id}`} className="text-primary hover:underline">
+                    {r.id}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>
+    <div className="space-y-2">
+      <h1 className="text-2xl font-semibold tracking-tight">
         Compare: {a} vs {b}
       </h1>
       <CompareClient runA={a} runB={b} contrastId={contrast?.id} />

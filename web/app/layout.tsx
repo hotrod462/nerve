@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Geist } from "next/font/google";
+import { SiteNav } from "@/components/SiteNav";
+import { cn } from "@/lib/utils";
 import "./globals.css";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Nerve — TRIBE interpretability",
@@ -13,14 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("dark font-sans", geist.variable)}>
       <body>
-        <nav>
-          <Link href="/">Gallery</Link>
-          <Link href="/compare">Compare</Link>
-          <Link href="/matrix">Matrix</Link>
-        </nav>
-        <main>{children}</main>
+        <SiteNav />
+        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
       </body>
     </html>
   );
