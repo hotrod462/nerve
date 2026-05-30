@@ -65,7 +65,7 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     manifest = json.loads((web_dir / "manifest.json").read_text())
     assert manifest["T"] == 10
     assert manifest["n_vertices"] == N_VERTICES_FSAVERAGE5
-    assert manifest["default_surface"] == "half"
+    assert manifest["default_surface"] == "pial"
     assert "activations" in manifest["mesh"]
     assert "atlas" in manifest["mesh"]
     assert manifest["mesh"]["atlas"]["lut"] == "matrices/atlas.json"

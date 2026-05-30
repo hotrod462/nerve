@@ -95,7 +95,7 @@ export default async function TrackPage({
 
   const base = `/api/runs/${run.id}`;
   const meshBundle = buildMeshBundle(base, run.manifest.mesh);
-  const defaultSurface = (run.manifest.default_surface ?? "half") as SurfaceMode;
+  const defaultSurface = (run.manifest.default_surface ?? "pial") as SurfaceMode;
   const stimulusPath = run.manifest.stimulus?.path;
   const stimulusAudioUrl = stimulusPath
     ? `/api/stimulus/${stimulusPath.split("/").map(encodeURIComponent).join("/")}`
@@ -121,7 +121,7 @@ export default async function TrackPage({
           mesh={meshBundle}
           defaultSurface={defaultSurface}
           stimulusAudioUrl={stimulusAudioUrl}
-          colormap={run.manifest.colormap ?? "hot"}
+          colormap={run.manifest.colormap ?? "redyell"}
           vmin={run.manifest.vmin}
           vmax={run.manifest.vmax}
           fps={run.manifest.fps ?? 1}

@@ -27,13 +27,16 @@ ASSETS_FSAVERAGE5 = REPO_ROOT / "data" / "assets" / "fsaverage5"
 
 
 def _vmin_vmax(data: np.ndarray, symmetric: bool = False) -> tuple[float, float]:
-    """Robust range — matches Meta TRIBE plotting (99th percentile)."""
+    """Meta-style range: floor at 0, cap at 95th pct of positive values (red-heavy, sparse yellow)."""
     if symmetric:
         m = float(np.percentile(np.abs(data), 99))
         return (-m, m)
-    lo = float(np.percentile(data, 1))
-    hi = float(np.percentile(data, 99))
-    return (lo, hi)
+    positive = data[data > 0]
+    if positive.size > 0:
+        hi = float(np.percentile(positive, 95))
+    else:
+        hi = float(np.percentile(data, 99))
+    return (0.0, max(hi, 1e-6))
 
 
 def _parcel_json(parceler: SchaeferParcellation, vertex_ts: np.ndarray) -> dict[str, Any]:
@@ -54,7 +57,7 @@ def _parcel_json(parceler: SchaeferParcellation, vertex_ts: np.ndarray) -> dict[
 def export_web_bundle(
     run_dir: str | Path,
     n_parcels: int = 100,
-    colormap: str = "hot",
+    colormap: str = "redyell",
 ) -> Path:
     """
     Write GIfTI 4D + JSON matrices to {run_dir}/web/.
@@ -96,7 +99,7 @@ def export_web_bundle(
         "colormap": colormap,
         "space": "fsaverage5",
         "inference_mode": "acoustic_only",
-        "default_surface": "half",
+        "default_surface": "pial",
         "mesh": {
             "surfaces": {
                 "pial": {"lh": "mesh/lh.pial.gii", "rh": "mesh/rh.pial.gii"},

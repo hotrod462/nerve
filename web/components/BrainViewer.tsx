@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  buildBorderConnectome,
-  segmentLutFromLabelLut,
+  buildSpokeConnectome,
   type AtlasData,
   type BorderEdgesData,
   type MeshAtlasUrls,
@@ -40,9 +39,21 @@ export interface BrainViewerProps {
   onFrameChange?: (f: number) => void;
   playing?: boolean;
   onPlayingChange?: (p: boolean) => void;
+  totalFrames?: number;
 }
 
 type NiivueInstance = InstanceType<typeof import("@niivue/niivue").Niivue>;
+
+type CortexMesh = {
+  id: string;
+  pts: Float32Array | number[];
+  tris: Uint32Array | number[];
+  type?: string;
+};
+
+type LoadedCortexMesh = CortexMesh & {
+  layers?: Array<{ nFrame4D?: number }>;
+};
 
 const SURFACE_LABELS: Record<SurfaceMode, string> = {
   pial: "Normal",
@@ -56,15 +67,22 @@ const REGION_LABELS: Record<RegionMode, string> = {
   parcels: "Parcels",
 };
 
-const SEGMENT_LAYER_OPACITY = 0.44;
+/** Meta-style white brain base color. */
+const BRAIN_RGBA: [number, number, number, number] = [248, 248, 248, 255];
+
+const SPOKE_SUBSAMPLE: Record<RegionMode, number> = {
+  off: 1,
+  yeo: 3,
+  parcels: 10,
+};
 
 export function BrainViewer({
   lhMeshUrl,
   rhMeshUrl,
   mesh,
-  defaultSurface = "half",
+  defaultSurface = "pial",
   stimulusAudioUrl,
-  colormap = "hot",
+  colormap = "redyell",
   vmin = 0,
   vmax = 1,
   fps = 1,
@@ -73,12 +91,12 @@ export function BrainViewer({
   onFrameChange,
   playing: externalPlaying,
   onPlayingChange,
+  totalFrames: totalFramesProp,
 }: BrainViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nvRef = useRef<NiivueInstance | null>(null);
   const activationLayerRef = useRef(0);
-  const segmentLayerRef = useRef<number | null>(null);
 
   const [internalFrame, setInternalFrame] = useState(0);
   const [internalPlaying, setInternalPlaying] = useState(true);
@@ -98,7 +116,7 @@ export function BrainViewer({
   const setFrame = onFrameChange ?? setInternalFrame;
   const setPlaying = onPlayingChange ?? setInternalPlaying;
 
-  const hasAtlas = Boolean(mesh?.atlas?.yeo?.lh && mesh?.atlas?.lut);
+  const hasAtlas = Boolean(mesh?.atlas?.borders?.yeo?.lh && mesh?.atlas?.lut);
 
   useEffect(() => {
     const lutUrl = mesh?.atlas?.lut;
@@ -130,25 +148,8 @@ export function BrainViewer({
   const geomRh = mesh?.surfaces?.[surface]?.rh ?? rhMeshUrl;
   const actLh = mesh?.activations?.lh;
   const actRh = mesh?.activations?.rh;
-  const sulcLh = mesh?.sulc?.lh;
-  const sulcRh = mesh?.sulc?.rh;
-  const sulcMin = mesh?.sulcRange?.min ?? -12;
-  const sulcMax = mesh?.sulcRange?.max ?? 12;
 
   const showRegions = regions !== "off";
-  const segmentLh =
-    regions === "yeo"
-      ? mesh?.atlas?.yeo?.lh
-      : regions === "parcels"
-        ? mesh?.atlas?.parcels?.lh
-        : undefined;
-  const segmentRh =
-    regions === "yeo"
-      ? mesh?.atlas?.yeo?.rh
-      : regions === "parcels"
-        ? mesh?.atlas?.parcels?.rh
-        : undefined;
-
   const borderLhUrl =
     regions === "yeo"
       ? mesh?.atlas?.borders?.yeo?.lh
@@ -169,11 +170,6 @@ export function BrainViewer({
         ? atlasData?.parcel_lut
         : undefined;
 
-  const segmentLut = useMemo(() => {
-    if (!showRegions || !regionLut) return undefined;
-    return segmentLutFromLabelLut(regionLut);
-  }, [showRegions, regionLut]);
-
   const configureBoldLayer = useCallback(
     async (nv: NiivueInstance, meshId: string, layerIdx: number) => {
       const setLayer = nv.setMeshLayerProperty.bind(nv) as (
@@ -186,49 +182,10 @@ export function BrainViewer({
       await setLayer(meshId, layerIdx, "cal_min", vmin);
       await setLayer(meshId, layerIdx, "cal_max", vmax);
       await setLayer(meshId, layerIdx, "opacity", 1);
-      await setLayer(meshId, layerIdx, "isTransparentBelowCalMin", false);
+      await setLayer(meshId, layerIdx, "isTransparentBelowCalMin", true);
       await setLayer(meshId, layerIdx, "frame4D", frameRef.current);
     },
     [colormap, vmin, vmax]
-  );
-
-  const configureSegmentLayer = useCallback(
-    async (
-      nv: NiivueInstance,
-      meshId: string,
-      layerIdx: number,
-      lut: NiivueLabelLut
-    ) => {
-      const setLayer = nv.setMeshLayerProperty.bind(nv) as (
-        id: string,
-        layer: number,
-        key: string,
-        val: string | number | boolean | NiivueLabelLut
-      ) => Promise<void>;
-      await setLayer(meshId, layerIdx, "colormapLabel", lut);
-      await setLayer(meshId, layerIdx, "opacity", SEGMENT_LAYER_OPACITY);
-      await setLayer(meshId, layerIdx, "outlineBorder", 0);
-      await setLayer(meshId, layerIdx, "showLegend", false);
-      await setLayer(meshId, layerIdx, "frame4D", 0);
-    },
-    []
-  );
-
-  const configureSulcLayer = useCallback(
-    async (nv: NiivueInstance, meshId: string) => {
-      const setLayer = nv.setMeshLayerProperty.bind(nv) as (
-        id: string,
-        layer: number,
-        key: string,
-        val: string | number | boolean
-      ) => Promise<void>;
-      await setLayer(meshId, 0, "colormap", "gray");
-      await setLayer(meshId, 0, "cal_min", sulcMin);
-      await setLayer(meshId, 0, "cal_max", sulcMax);
-      await setLayer(meshId, 0, "opacity", 1);
-      await setLayer(meshId, 0, "isTransparentBelowCalMin", false);
-    },
-    [sulcMin, sulcMax]
   );
 
   const configureEmbeddedScalars = useCallback(
@@ -245,20 +202,20 @@ export function BrainViewer({
       await setLayer(meshId, 0, "cal_min", vmin);
       await setLayer(meshId, 0, "cal_max", vmax);
       await setLayer(meshId, 0, "opacity", 1);
-      await setLayer(meshId, 0, "isTransparentBelowCalMin", false);
+      await setLayer(meshId, 0, "isTransparentBelowCalMin", true);
       await setLayer(meshId, 0, "frame4D", frameRef.current);
       activationLayerRef.current = 0;
-      segmentLayerRef.current = null;
     },
     [colormap, vmin, vmax]
   );
 
-  const addBorderConnectomes = useCallback(
+  const addSpokeConnectomes = useCallback(
     async (
       nv: NiivueInstance,
       lhUrl: string,
       rhUrl: string,
-      cortexMeshes: Array<{ id: string; pts: Float32Array | number[]; type?: string }>
+      cortexMeshes: CortexMesh[],
+      mode: RegionMode
     ) => {
       const loadBorder = async (url: string) => {
         const res = await fetch(url);
@@ -271,19 +228,29 @@ export function BrainViewer({
         loadBorder(rhUrl),
       ]);
 
-      if (cortexMeshes[0]?.pts) {
+      const subsample = SPOKE_SUBSAMPLE[mode];
+
+      if (cortexMeshes[0]?.pts && cortexMeshes[0]?.tris) {
         const lhConn = nv.loadConnectomeAsMesh(
-          buildBorderConnectome(cortexMeshes[0].pts, lhBorder, "lh_region_borders") as unknown as Parameters<
-            typeof nv.loadConnectomeAsMesh
-          >[0]
+          buildSpokeConnectome(
+            cortexMeshes[0].pts,
+            cortexMeshes[0].tris,
+            lhBorder,
+            "lh_region_spokes",
+            { subsample }
+          ) as unknown as Parameters<typeof nv.loadConnectomeAsMesh>[0]
         );
         nv.addMesh(lhConn);
       }
-      if (cortexMeshes[1]?.pts) {
+      if (cortexMeshes[1]?.pts && cortexMeshes[1]?.tris) {
         const rhConn = nv.loadConnectomeAsMesh(
-          buildBorderConnectome(cortexMeshes[1].pts, rhBorder, "rh_region_borders") as unknown as Parameters<
-            typeof nv.loadConnectomeAsMesh
-          >[0]
+          buildSpokeConnectome(
+            cortexMeshes[1].pts,
+            cortexMeshes[1].tris,
+            rhBorder,
+            "rh_region_spokes",
+            { subsample }
+          ) as unknown as Parameters<typeof nv.loadConnectomeAsMesh>[0]
         );
         nv.addMesh(rhConn);
       }
@@ -296,8 +263,6 @@ export function BrainViewer({
 
     async function init() {
       try {
-        if (showRegions && !segmentLut) return;
-
         setReady(false);
         setError(null);
 
@@ -315,13 +280,6 @@ export function BrainViewer({
         nvRef.current = nv;
 
         if (useLayered && actLh && actRh) {
-          const sulcLayersLh = sulcLh
-            ? [{ url: sulcLh, colormap: "gray", cal_min: sulcMin, cal_max: sulcMax, opacity: 1 }]
-            : [];
-          const sulcLayersRh = sulcRh
-            ? [{ url: sulcRh, colormap: "gray", cal_min: sulcMin, cal_max: sulcMax, opacity: 1 }]
-            : [];
-
           const boldLayerLh = {
             url: actLh,
             colormap,
@@ -339,48 +297,32 @@ export function BrainViewer({
             frame4D: frameRef.current,
           };
 
-          const segmentLayersLh =
-            showRegions && segmentLh && segmentLut
-              ? [{ url: segmentLh, colormapLabel: segmentLut, opacity: SEGMENT_LAYER_OPACITY, frame4D: 0 }]
-              : [];
-          const segmentLayersRh =
-            showRegions && segmentRh && segmentLut
-              ? [{ url: segmentRh, colormapLabel: segmentLut, opacity: SEGMENT_LAYER_OPACITY, frame4D: 0 }]
-              : [];
-
           await nv.loadMeshes([
             {
               url: geomLh,
-              rgba255: [140, 140, 140, 255],
+              rgba255: BRAIN_RGBA,
               opacity: 1,
-              layers: [...sulcLayersLh, boldLayerLh, ...segmentLayersLh],
+              layers: [boldLayerLh],
             },
             {
               url: geomRh,
-              rgba255: [140, 140, 140, 255],
+              rgba255: BRAIN_RGBA,
               opacity: 1,
-              layers: [...sulcLayersRh, boldLayerRh, ...segmentLayersRh],
+              layers: [boldLayerRh],
             },
           ] as unknown as Parameters<typeof nv.loadMeshes>[0]);
 
-          activationLayerRef.current = sulcLh ? 1 : 0;
-          segmentLayerRef.current = showRegions
-            ? activationLayerRef.current + 1
-            : null;
+          activationLayerRef.current = 0;
 
           if (cancelled) return;
 
           const cortexMeshes = (nv.meshes ?? []).filter(
-            (m) => (m as { type?: string }).type !== "connectome"
-          );
+            (m) => (m as CortexMesh).type !== "connectome"
+          ) as CortexMesh[];
 
           for (const m of cortexMeshes) {
-            if (sulcLh) await configureSulcLayer(nv, m.id);
             await configureBoldLayer(nv, m.id, activationLayerRef.current);
-            if (showRegions && segmentLut && segmentLayerRef.current !== null) {
-              await configureSegmentLayer(nv, m.id, segmentLayerRef.current, segmentLut);
-            }
-            nv.setMeshShader(m.id, "Phong");
+            nv.setMeshShader(m.id, "Matte");
           }
 
           if (
@@ -390,21 +332,27 @@ export function BrainViewer({
             cortexMeshes.length >= 2
           ) {
             try {
-              await addBorderConnectomes(nv, borderLhUrl, borderRhUrl, cortexMeshes);
-            } catch (borderErr) {
-              console.warn("Region border geometry unavailable:", borderErr);
+              await addSpokeConnectomes(
+                nv,
+                borderLhUrl,
+                borderRhUrl,
+                cortexMeshes,
+                regions
+              );
+            } catch (spokeErr) {
+              console.warn("Region spoke geometry unavailable:", spokeErr);
             }
           }
         } else {
           await nv.loadMeshes([
-            { url: geomLh, rgba255: [140, 140, 140, 255], opacity: 1 },
-            { url: geomRh, rgba255: [140, 140, 140, 255], opacity: 1 },
+            { url: geomLh, rgba255: BRAIN_RGBA, opacity: 1 },
+            { url: geomRh, rgba255: BRAIN_RGBA, opacity: 1 },
           ] as unknown as Parameters<typeof nv.loadMeshes>[0]);
 
           if (cancelled) return;
           for (const m of nv.meshes ?? []) {
             await configureEmbeddedScalars(nv, m.id);
-            nv.setMeshShader(m.id, "Phong");
+            nv.setMeshShader(m.id, "Matte");
           }
         }
 
@@ -416,12 +364,14 @@ export function BrainViewer({
         nv.drawScene();
 
         const cortexMeshes = (nv.meshes ?? []).filter(
-          (m) => (m as { type?: string }).type !== "connectome"
-        );
+          (m) => (m as CortexMesh).type !== "connectome"
+        ) as CortexMesh[];
         const layerIdx = activationLayerRef.current;
+        const loaded = cortexMeshes[0] as LoadedCortexMesh | undefined;
         const n =
-          cortexMeshes[0]?.layers?.[layerIdx]?.nFrame4D ??
-          cortexMeshes[0]?.layers?.[0]?.nFrame4D ??
+          totalFramesProp ??
+          loaded?.layers?.[layerIdx]?.nFrame4D ??
+          loaded?.layers?.[0]?.nFrame4D ??
           45;
         setTotalFrames(n || 45);
         setReady(true);
@@ -441,26 +391,18 @@ export function BrainViewer({
     geomRh,
     actLh,
     actRh,
-    segmentLh,
-    segmentRh,
     borderLhUrl,
     borderRhUrl,
     regions,
     showRegions,
-    segmentLut,
-    sulcLh,
-    sulcRh,
     useLayered,
     colormap,
     vmin,
     vmax,
     configureBoldLayer,
-    configureSegmentLayer,
     configureEmbeddedScalars,
-    configureSulcLayer,
-    addBorderConnectomes,
-    sulcMin,
-    sulcMax,
+    addSpokeConnectomes,
+    totalFramesProp,
   ]);
 
   useEffect(() => {
@@ -470,7 +412,7 @@ export function BrainViewer({
     if (!nv) return;
 
     const cortexMeshes = (nv.meshes ?? []).filter(
-      (m) => (m as { type?: string }).type !== "connectome"
+      (m) => (m as CortexMesh).type !== "connectome"
     );
     if (cortexMeshes.length === 0) return;
 
@@ -495,7 +437,7 @@ export function BrainViewer({
     if (!nv || !ready) return;
 
     const cortexMeshes = (nv.meshes ?? []).filter(
-      (m) => (m as { type?: string }).type !== "connectome"
+      (m) => (m as CortexMesh).type !== "connectome"
     );
     if (cortexMeshes.length === 0) return;
 
@@ -522,7 +464,7 @@ export function BrainViewer({
       <div className="card brain-viewer-card" style={{ minHeight: height }}>
         <p style={{ color: "#f0c080" }}>Brain viewer: {error}</p>
         <p style={{ fontSize: "0.85rem", color: "#9aa0a6" }}>
-          Re-run <code>nerve export-web</code> to regenerate mesh bundles with atlas segments.
+          Re-run <code>nerve export-web</code> to regenerate mesh bundles.
         </p>
       </div>
     );
@@ -554,7 +496,7 @@ export function BrainViewer({
                 type="button"
                 className={`brain-toolbar__btn${regions === mode ? " is-active" : ""}`}
                 onClick={() => setRegions(mode)}
-                disabled={mode !== "off" && !atlasData}
+                disabled={mode !== "off" && !mesh?.atlas?.borders}
               >
                 {REGION_LABELS[mode]}
               </button>

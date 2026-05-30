@@ -16,7 +16,9 @@ export function BrainColorbar({
   const gradient =
     colormap === "cold_hot"
       ? "linear-gradient(to right, #2166ac, #f7f7f7, #b2182b)"
-      : "linear-gradient(to right, #000, #800, #f00, #ff0, #fff)";
+      : colormap === "redyell"
+        ? "linear-gradient(to right, #200, #c00, #f80, #fc0)"
+        : "linear-gradient(to right, #000, #800, #f00, #ff0, #fff)";
 
   return (
     <div className="brain-colorbar" aria-label={`${label} color scale`}>

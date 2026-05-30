@@ -64,59 +64,140 @@ export interface NiivueConnectomeJson {
   showLegend: boolean;
 }
 
-/** Semi-transparent region fill for 3D segment patches over BOLD. */
-export function segmentLutFromLabelLut(
-  lut: NiivueLabelLut,
-  fillAlpha = 105
-): NiivueLabelLut {
-  const n = lut.R.length;
-  const indices = lut.I ?? lut.R.map((_, i) => i);
-  const A = indices.map((idx) => (idx <= 0 ? 0 : fillAlpha));
-  return {
-    R: [...lut.R],
-    G: [...lut.G],
-    B: [...lut.B],
-    A,
-    I: lut.I ? [...lut.I] : undefined,
-    labels: lut.labels ? [...lut.labels] : undefined,
-  };
+export interface SpokeConnectomeOptions {
+  spokeLength?: number;
+  subsample?: number;
+  edgeScale?: number;
 }
 
-/** Build Niivue connectome JSON for 3D border line geometry on a loaded mesh. */
-export function buildBorderConnectome(
+/** Per-vertex normals from triangle mesh (for outward region spokes). */
+export function computeVertexNormals(
   pts: ArrayLike<number>,
+  tris: ArrayLike<number>
+): Float32Array {
+  const nVerts = pts.length / 3;
+  const normals = new Float32Array(nVerts * 3);
+
+  for (let i = 0; i < tris.length; i += 3) {
+    const i0 = tris[i];
+    const i1 = tris[i + 1];
+    const i2 = tris[i + 2];
+
+    const ax = pts[i0 * 3];
+    const ay = pts[i0 * 3 + 1];
+    const az = pts[i0 * 3 + 2];
+    const bx = pts[i1 * 3];
+    const by = pts[i1 * 3 + 1];
+    const bz = pts[i1 * 3 + 2];
+    const cx = pts[i2 * 3];
+    const cy = pts[i2 * 3 + 1];
+    const cz = pts[i2 * 3 + 2];
+
+    const abx = bx - ax;
+    const aby = by - ay;
+    const abz = bz - az;
+    const acx = cx - ax;
+    const acy = cy - ay;
+    const acz = cz - az;
+
+    const nx = aby * acz - abz * acy;
+    const ny = abz * acx - abx * acz;
+    const nz = abx * acy - aby * acx;
+
+    for (const vi of [i0, i1, i2]) {
+      normals[vi * 3] += nx;
+      normals[vi * 3 + 1] += ny;
+      normals[vi * 3 + 2] += nz;
+    }
+  }
+
+  for (let v = 0; v < nVerts; v++) {
+    const base = v * 3;
+    let nx = normals[base];
+    let ny = normals[base + 1];
+    let nz = normals[base + 2];
+    const len = Math.hypot(nx, ny, nz) || 1;
+    normals[base] = nx / len;
+    normals[base + 1] = ny / len;
+    normals[base + 2] = nz / len;
+  }
+
+  return normals;
+}
+
+export function borderVerticesFromEdges(edges: number[][]): number[] {
+  const verts = new Set<number>();
+  for (const pair of edges) {
+    if (pair.length < 2) continue;
+    verts.add(pair[0]);
+    verts.add(pair[1]);
+  }
+  return [...verts].sort((a, b) => a - b);
+}
+
+function addNode(
+  nodes: NiivueConnectomeNode[],
+  x: number,
+  y: number,
+  z: number
+): number {
+  const idx = nodes.length;
+  nodes.push({ name: "", x, y, z, colorValue: 1, sizeValue: 0 });
+  return idx;
+}
+
+/**
+ * Outward dotted spokes from border vertices along surface normals.
+ * Each spoke is two short segments with a gap (dotted appearance).
+ */
+export function buildSpokeConnectome(
+  pts: ArrayLike<number>,
+  tris: ArrayLike<number>,
   border: BorderEdgesData,
-  name: string
+  name: string,
+  options: SpokeConnectomeOptions = {}
 ): NiivueConnectomeJson {
-  const nodeForVertex = new Map<number, number>();
+  const spokeLength = options.spokeLength ?? 3.5;
+  const subsample = Math.max(1, options.subsample ?? 1);
+  const edgeScale = options.edgeScale ?? 0.22;
+
+  const normals = computeVertexNormals(pts, tris);
+  const borderVerts = borderVerticesFromEdges(border.edges);
   const nodes: NiivueConnectomeNode[] = [];
   const edges: NiivueConnectomeEdge[] = [];
 
-  const nodeIndex = (v: number) => {
-    let idx = nodeForVertex.get(v);
-    if (idx === undefined) {
-      const base = v * 3;
-      idx = nodes.length;
-      nodeForVertex.set(v, idx);
-      nodes.push({
-        name: "",
-        x: pts[base],
-        y: pts[base + 1],
-        z: pts[base + 2],
-        colorValue: 1,
-        sizeValue: 0,
-      });
-    }
-    return idx;
-  };
+  for (let i = 0; i < borderVerts.length; i += subsample) {
+    const v = borderVerts[i];
+    const base = v * 3;
+    const px = pts[base];
+    const py = pts[base + 1];
+    const pz = pts[base + 2];
+    const nx = normals[base];
+    const ny = normals[base + 1];
+    const nz = normals[base + 2];
 
-  for (const pair of border.edges) {
-    if (pair.length < 2) continue;
-    edges.push({
-      first: nodeIndex(pair[0]),
-      second: nodeIndex(pair[1]),
-      colorValue: 1,
-    });
+    const dot0 = addNode(nodes, px, py, pz);
+    const dot35 = addNode(
+      nodes,
+      px + nx * spokeLength * 0.35,
+      py + ny * spokeLength * 0.35,
+      pz + nz * spokeLength * 0.35
+    );
+    const dot55 = addNode(
+      nodes,
+      px + nx * spokeLength * 0.55,
+      py + ny * spokeLength * 0.55,
+      pz + nz * spokeLength * 0.55
+    );
+    const dot95 = addNode(
+      nodes,
+      px + nx * spokeLength * 0.95,
+      py + ny * spokeLength * 0.95,
+      pz + nz * spokeLength * 0.95
+    );
+
+    edges.push({ first: dot0, second: dot35, colorValue: 1 });
+    edges.push({ first: dot55, second: dot95, colorValue: 1 });
   }
 
   return {
@@ -130,7 +211,7 @@ export function buildBorderConnectome(
     edgeMin: 0,
     edgeMax: 2,
     nodeScale: 0,
-    edgeScale: 0.45,
+    edgeScale,
     showLegend: false,
   };
 }
