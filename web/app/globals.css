@@ -214,14 +214,145 @@ canvas.brain-canvas {
   margin-top: 1.25rem;
 }
 
+.engagement-panel {
+  margin-top: 1rem;
+}
+
+.engagement-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.engagement-panel__disclaimer {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 36rem;
+}
+
+.engagement-panel__dominant {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.engagement-panel__dominant-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.engagement-panel__dominant-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.engagement-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.engagement-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .engagement-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.engagement-row__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.engagement-row__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.engagement-row__headline {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.engagement-row__tagline {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.engagement-row__chart {
+  display: block;
+  cursor: crosshair;
+  background: #0c0e13;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.engagement-row__stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.engagement-row__stats-muted {
+  color: var(--muted);
+}
+
+.engagement-panel__events {
+  margin: 0.85rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .stimulus-audio {
   margin-top: 0.5rem;
+}
+
+.stimulus-audio__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .stimulus-audio__label {
   font-size: 0.75rem;
   color: var(--muted);
-  margin-bottom: 0.25rem;
+}
+
+.stimulus-audio__mute {
+  border: 1px solid var(--border);
+  background: #12151c;
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.stimulus-audio__mute[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .stimulus-audio__wave-wrap {

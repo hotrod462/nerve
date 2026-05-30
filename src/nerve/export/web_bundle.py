@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from nerve.analysis.contrast import compute_contrast
+from nerve.analysis.engagement import compute_engagement
 from nerve.export.atlas_export import export_atlas_mesh
 from nerve.export.gifti_writer import (
     copy_mesh_templates,
@@ -54,9 +55,29 @@ def _parcel_json(parceler: SchaeferParcellation, vertex_ts: np.ndarray) -> dict[
     }
 
 
+def _write_engagement_json(
+    parceler: SchaeferParcellation,
+    vertex_ts: np.ndarray,
+    matrices_dir: Path,
+    inference_mode: str = "acoustic_only",
+) -> None:
+    parcels = parceler.aggregate(vertex_ts)
+    doc = compute_engagement(
+        parcels,
+        parceler.parcel_networks(),
+        n_parcels=parceler.n_parcels,
+        yeo_networks=parceler.yeo_networks,
+        inference_mode=inference_mode,
+    )
+    (matrices_dir / "engagement.json").write_text(
+        json.dumps(doc),
+        encoding="utf-8",
+    )
+
+
 def export_web_bundle(
     run_dir: str | Path,
-    n_parcels: int = 100,
+    n_parcels: int = 400,
     colormap: str = "redyell",
 ) -> Path:
     """
@@ -148,6 +169,13 @@ def export_web_bundle(
             ),
             encoding="utf-8",
         )
+        _write_engagement_json(
+            parceler,
+            ts,
+            matrices_dir,
+            inference_mode=prediction.inference_mode.value,
+        )
+        manifest["matrices"] = {"engagement": "matrices/engagement.json"}
 
     if contrast is not None:
         vm = contrast.vertex_map
@@ -172,6 +200,7 @@ def export_web_bundle(
             json.dumps(_parcel_json(parceler, vm)),
             encoding="utf-8",
         )
+        _write_engagement_json(parceler, vm, contrast_dir, inference_mode="contrast")
 
     write_run_manifest(web_dir, manifest)
     logger.info("Exported web bundle to %s", web_dir)
@@ -181,7 +210,7 @@ def export_web_bundle(
 def export_multi_stimulus_matrix(
     run_dirs: list[Path],
     out_dir: Path,
-    n_parcels: int = 100,
+    n_parcels: int = 400,
 ) -> None:
     """Build stimulus×parcel matrix JSON for /matrix page."""
     parceler = SchaeferParcellation(n_parcels=n_parcels)

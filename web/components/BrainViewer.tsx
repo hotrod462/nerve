@@ -87,7 +87,7 @@ export function BrainViewer({
   const activationLayerRef = useRef(0);
 
   const [internalFrame, setInternalFrame] = useState(0);
-  const [internalPlaying, setInternalPlaying] = useState(true);
+  const [internalPlaying, setInternalPlaying] = useState(false);
   const [totalFrames, setTotalFrames] = useState(45);
   const [error, setError] = useState<string | null>(null);
   const [surface, setSurface] = useState<SurfaceMode>(defaultSurface);

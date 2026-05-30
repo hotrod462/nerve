@@ -2,12 +2,10 @@ import path from "path";
 import { notFound } from "next/navigation";
 import { DeviceBadge } from "@/components/DeviceBadge";
 import type { MeshBundle, SurfaceMode } from "@/components/BrainViewer";
-import { ParcelHeatmap } from "@/components/ParcelHeatmap";
-import { TrackViewerClient } from "./TrackViewerClient";
+import { TrackEngagementPanel } from "./TrackEngagementPanel";
 import { getRun, readJsonFile } from "@/lib/loadRun";
 import type { MeshManifest } from "@/lib/loadRun";
-import type { ParcelTimeData } from "@/lib/parcels";
-import { yeoSummary } from "@/lib/parcels";
+import type { EngagementData } from "@/lib/engagement";
 
 function bundleUrl(base: string, rel: string) {
   return `${base}/${rel}`;
@@ -94,10 +92,8 @@ export default async function TrackPage({
   const run = getRun(id);
   if (!run) notFound();
 
-  const parcelPath = path.join(run.webDir, "matrices", "parcel_time.json");
-  const parcel = readJsonFile<ParcelTimeData>(parcelPath);
-  const networks = parcel?.networks ?? [];
-  const yeo = parcel && networks.length ? yeoSummary(parcel.data, networks) : null;
+  const engagementPath = path.join(run.webDir, "matrices", "engagement.json");
+  const engagement = readJsonFile<EngagementData>(engagementPath);
 
   const base = `/api/runs/${run.id}`;
   const meshBundle = buildMeshBundle(base, run.manifest.mesh);
@@ -120,40 +116,19 @@ export default async function TrackPage({
         />
       </div>
 
-      <div className="track-hero">
-        <TrackViewerClient
-          lhMeshUrl={`${base}/mesh/lh.inflated.gii`}
-          rhMeshUrl={`${base}/mesh/rh.inflated.gii`}
-          mesh={meshBundle}
-          defaultSurface={defaultSurface}
-          stimulusAudioUrl={stimulusAudioUrl}
-          colormap={run.manifest.colormap ?? "redyell"}
-          vmin={run.manifest.vmin}
-          vmax={run.manifest.vmax}
-          fps={run.manifest.fps ?? 1}
-          totalFrames={run.manifest.T ?? 45}
-        />
-      </div>
-
-      <div className="grid-2" style={{ marginTop: "1rem" }}>
-        <div>
-          {parcel && <ParcelHeatmap parcel={parcel} />}
-        </div>
-        <div>
-          {yeo && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Yeo networks (mean)</h3>
-              <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
-                {Object.entries(yeo).map(([net, v]) => (
-                  <li key={net}>
-                    {net}: {v.toFixed(4)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
+      <TrackEngagementPanel
+        engagement={engagement}
+        lhMeshUrl={`${base}/mesh/lh.inflated.gii`}
+        rhMeshUrl={`${base}/mesh/rh.inflated.gii`}
+        mesh={meshBundle}
+        defaultSurface={defaultSurface}
+        stimulusAudioUrl={stimulusAudioUrl}
+        colormap={run.manifest.colormap ?? "redyell"}
+        vmin={run.manifest.vmin}
+        vmax={run.manifest.vmax}
+        fps={run.manifest.fps ?? 1}
+        totalFrames={run.manifest.T ?? 45}
+      />
     </div>
   );
 }

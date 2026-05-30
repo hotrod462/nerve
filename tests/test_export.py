@@ -91,3 +91,9 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     parcel = json.loads((web_dir / "matrices" / "parcel_time.json").read_text())
     assert parcel["n_parcels"] == 100
     assert len(parcel["data"]) == 100
+
+    engagement = json.loads((web_dir / "matrices" / "engagement.json").read_text())
+    assert engagement["n_trs"] == 10
+    assert engagement["networks"]["Cont"]["headline"] == "Focus"
+    assert len(engagement["networks"]["Vis"]["zscore"]) == 10
+    assert manifest["matrices"]["engagement"] == "matrices/engagement.json"

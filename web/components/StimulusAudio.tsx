@@ -38,14 +38,18 @@ export function StimulusAudio({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [peaks, setPeaks] = useState<Float32Array | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
 
   // Decode waveform once per stimulus URL
   useEffect(() => {
     if (!src) {
       setPeaks(null);
       setError(null);
+      setMuted(true);
       return;
     }
+
+    setMuted(true);
 
     let cancelled = false;
     const ac = new AudioContext();
@@ -103,9 +107,22 @@ export function StimulusAudio({
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !src) return;
+    el.muted = muted;
     if (playing) void el.play().catch(() => undefined);
     else el.pause();
-  }, [playing, src]);
+  }, [playing, src, muted]);
+
+  const toggleMute = () => {
+    setMuted((wasMuted) => {
+      const next = !wasMuted;
+      const el = audioRef.current;
+      if (el) {
+        el.muted = next;
+        if (!next && playing) void el.play().catch(() => undefined);
+      }
+      return next;
+    });
+  };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -200,7 +217,17 @@ export function StimulusAudio({
 
   return (
     <div className="stimulus-audio">
-      <div className="stimulus-audio__label">Stimulus audio</div>
+      <div className="stimulus-audio__header">
+        <div className="stimulus-audio__label">Stimulus audio</div>
+        <button
+          type="button"
+          className="stimulus-audio__mute"
+          onClick={toggleMute}
+          aria-pressed={!muted}
+        >
+          {muted ? "Unmute" : "Mute"}
+        </button>
+      </div>
       <div ref={wrapRef} className="stimulus-audio__wave-wrap">
         <canvas
           ref={canvasRef}
@@ -213,7 +240,13 @@ export function StimulusAudio({
           aria-valuenow={frame}
         />
       </div>
-      <audio ref={audioRef} src={src} preload="auto" className="stimulus-audio__hidden" />
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="auto"
+        muted
+        className="stimulus-audio__hidden"
+      />
     </div>
   );
 }

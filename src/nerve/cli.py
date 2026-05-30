@@ -181,7 +181,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_export = sub.add_parser("export-web", help="Export GIfTI 4D bundle for web/")
     p_export.add_argument("--run", required=True, help="Run directory with prediction.npz")
-    p_export.add_argument("--parcels", type=int, default=100)
+    p_export.add_argument("--parcels", type=int, default=400)
     p_export.set_defaults(func=cmd_export_web)
 
     p_doctor = sub.add_parser("doctor", help="Device and environment smoke test")

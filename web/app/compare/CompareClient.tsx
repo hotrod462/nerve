@@ -42,7 +42,7 @@ export function CompareClient({
   contrastId?: string;
 }) {
   const [frame, setFrame] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
 
   const a = runMeshBundle(runA);
   const b = runMeshBundle(runB);
