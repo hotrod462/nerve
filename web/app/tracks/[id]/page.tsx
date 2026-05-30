@@ -74,6 +74,12 @@ function buildMeshBundle(base: string, mesh?: MeshManifest): MeshBundle | undefi
                   : undefined,
               }
             : undefined,
+          region_labels: mesh.atlas.region_labels
+            ? {
+                lh: bundleUrl(base, mesh.atlas.region_labels.lh),
+                rh: bundleUrl(base, mesh.atlas.region_labels.rh),
+              }
+            : undefined,
         }
       : undefined,
   };

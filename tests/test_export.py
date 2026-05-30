@@ -70,6 +70,14 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     assert "atlas" in manifest["mesh"]
     assert manifest["mesh"]["atlas"]["lut"] == "matrices/atlas.json"
     assert "borders" in manifest["mesh"]["atlas"]
+    assert "region_labels" in manifest["mesh"]["atlas"]
+
+    assert (web_dir / "matrices" / "atlas" / "labels_lh.json").is_file()
+
+    labels = json.loads((web_dir / "matrices" / "atlas" / "labels_lh.json").read_text())
+    assert labels["atlas"] == "Schaefer2018_Yeo7"
+    assert labels["n_regions"] == 7
+    assert len(labels["regions"][0]["anchor"]) == 3
 
     yeo_edges = json.loads((web_dir / "matrices" / "atlas" / "yeo_lh_edges.json").read_text())
     assert yeo_edges["n_edges"] > 1000

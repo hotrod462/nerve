@@ -44,6 +44,7 @@ export interface MeshAtlasManifest {
     yeo?: { lh: string; rh: string };
     parcels?: { lh: string; rh: string };
   };
+  region_labels?: { lh: string; rh: string };
 }
 
 export interface MeshManifest {

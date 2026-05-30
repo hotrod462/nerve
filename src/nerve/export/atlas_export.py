@@ -12,6 +12,7 @@ from nibabel import gifti
 
 from nerve.export.border_edges import write_border_edges
 from nerve.export.gifti_writer import ensure_fsaverage5_assets, save_gifti_uncompressed
+from nerve.export.region_labels import write_yeo_region_labels
 from nerve.parcellation.schaefer import YEO_NETWORK_ORDER, SchaeferParcellation
 from nerve.types import split_hemispheres
 
@@ -167,6 +168,13 @@ def export_atlas_mesh(
     write_border_edges(lh_geom, lh_parcels, atlas_sub / "parcels_lh_edges.json")
     write_border_edges(rh_geom, rh_parcels, atlas_sub / "parcels_rh_edges.json")
 
+    write_yeo_region_labels(
+        lh_geom, lh_yeo, list(YEO_NETWORK_ORDER), atlas_sub / "labels_lh.json", hemi="lh"
+    )
+    write_yeo_region_labels(
+        rh_geom, rh_yeo, list(YEO_NETWORK_ORDER), atlas_sub / "labels_rh.json", hemi="rh"
+    )
+
     logger.info("Wrote cortical atlas overlays to %s", mesh_dir)
 
     return {
@@ -174,4 +182,8 @@ def export_atlas_mesh(
         "yeo": {"lh": "mesh/lh.yeo.gii", "rh": "mesh/rh.yeo.gii"},
         "lut": "matrices/atlas.json",
         "borders": border_manifest,
+        "region_labels": {
+            "lh": "matrices/atlas/labels_lh.json",
+            "rh": "matrices/atlas/labels_rh.json",
+        },
     }
