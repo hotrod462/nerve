@@ -3,12 +3,20 @@
 import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { EngagementTimeline } from "@/components/EngagementTimeline";
+import { StimulusPlayback } from "@/components/StimulusPlayback";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import type { BrainViewerProps } from "@/components/BrainViewer";
 import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
 import type { SubcorticalEngagementData } from "@/lib/subcortical";
 import { SubcorticalEngagementTimeline } from "@/components/SubcorticalEngagementTimeline";
+import { ChevronDownIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const BrainViewer = dynamic(
   () => import("@/components/BrainViewer").then((m) => m.BrainViewer),
@@ -21,6 +29,8 @@ export function TrackEngagementPanel({
   acoustic,
   totalFrames,
   runApiBase,
+  stimulusAudioUrl,
+  fps,
   ...brainProps
 }: BrainViewerProps & {
   engagement?: EngagementData | null;
@@ -30,6 +40,7 @@ export function TrackEngagementPanel({
   runApiBase?: string;
 }) {
   const [frame, setFrame] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
   const handleFrameChange = useCallback((f: number) => {
     setFrame(f);
@@ -54,56 +65,89 @@ export function TrackEngagementPanel({
 
   return (
     <>
-      <div className="mt-5">
-        <BrainViewer
-          {...brainProps}
-          frame={frame}
-          onFrameChange={handleFrameChange}
-          totalFrames={totalFrames}
-          dominantNetworkTr={dominantNetworkTr}
-          analysisUrls={analysisUrls}
-        />
+      <Collapsible
+        defaultOpen={false}
+        className="track-brain-panel engagement-collapsible-section mt-5"
+      >
+        <CollapsibleTrigger className="engagement-collapsible-section__trigger track-brain-panel__trigger">
+          <div className="engagement-collapsible-section__heading">
+            <h2 className="track-brain-panel__title">Brain viewer</h2>
+            <p className="engagement-segments__hint">
+              3D cortical activation synced to playback — expand to explore spatial maps.
+            </p>
+          </div>
+          <ChevronDownIcon className="engagement-row__chevron" aria-hidden />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="engagement-collapsible-section__content">
+          <BrainViewer
+            {...brainProps}
+            frame={frame}
+            onFrameChange={handleFrameChange}
+            playing={playing}
+            onPlayingChange={setPlaying}
+            totalFrames={totalFrames}
+            dominantNetworkTr={dominantNetworkTr}
+            analysisUrls={analysisUrls}
+            externalPlayback
+            showTimeline={false}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+
+      <StimulusPlayback
+        src={stimulusAudioUrl}
+        frame={frame}
+        totalFrames={totalFrames}
+        fps={fps}
+        playing={playing}
+        onFrameChange={handleFrameChange}
+        onPlayingChange={setPlaying}
+      />
+
+      <div className="engagement-panels-grid">
+        {engagement ? (
+          <EngagementTimeline
+            engagement={engagement}
+            acoustic={acoustic}
+            currentFrame={frame}
+            onSeek={handleSeek}
+            className="engagement-panel-card min-w-0"
+          />
+        ) : (
+          <Card className="engagement-panel-card min-w-0">
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertTitle>Engagement data unavailable</AlertTitle>
+                <AlertDescription>
+                  Re-run <code>nerve export-web</code> to generate network
+                  engagement traces.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+        {subcortical ? (
+          <SubcorticalEngagementTimeline
+            subcortical={subcortical}
+            acoustic={acoustic}
+            currentFrame={frame}
+            onSeek={handleSeek}
+            className="engagement-panel-card min-w-0"
+          />
+        ) : (
+          <Card className={cn("engagement-panel-card min-w-0")}>
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertTitle>Subcortical data unavailable</AlertTitle>
+                <AlertDescription>
+                  Re-run <code>nerve predict --subcortical-only</code> and{" "}
+                  <code>nerve export-web</code> to generate subcortical traces.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
       </div>
-      {engagement ? (
-        <EngagementTimeline
-          engagement={engagement}
-          acoustic={acoustic}
-          currentFrame={frame}
-          onSeek={handleSeek}
-        />
-      ) : (
-        <Card className="mt-4">
-          <CardContent className="pt-6">
-            <Alert>
-              <AlertTitle>Engagement data unavailable</AlertTitle>
-              <AlertDescription>
-                Re-run <code>nerve export-web</code> to generate network
-                engagement traces.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
-      {subcortical ? (
-        <SubcorticalEngagementTimeline
-          subcortical={subcortical}
-          acoustic={acoustic}
-          currentFrame={frame}
-          onSeek={handleSeek}
-        />
-      ) : (
-        <Card className="mt-4">
-          <CardContent className="pt-6">
-            <Alert>
-              <AlertTitle>Subcortical data unavailable</AlertTitle>
-              <AlertDescription>
-                Re-run <code>nerve predict</code> and <code>nerve export-web</code>{" "}
-                to generate subcortical TRIBE predictions.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
     </>
   );
 }

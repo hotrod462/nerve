@@ -3,6 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   ENGAGEMENT_COLORS,
   ENGAGEMENT_NETWORK_ORDER,
   epochTemplateForSegment,
@@ -13,6 +18,7 @@ import {
   type EngagementData,
 } from "@/lib/engagement";
 import { cn } from "@/lib/utils";
+import { ChevronDownIcon } from "lucide-react";
 
 const MIN_SEGMENT_SECONDS = 3;
 const MAX_SEGMENTS_SHOWN = 24;
@@ -56,17 +62,19 @@ export function DominantSegmentTimeline({
   );
 
   return (
-    <div className="engagement-segments">
-      <div className="engagement-segments__header">
-        <h3 className="engagement-segments__title">Dominant network epochs</h3>
-        <p className="engagement-segments__hint">
-          Segments where each network wins the per-second z-score argmax. Literature
-          templates are exploratory in-silico hypotheses — re-export with{" "}
-          <code>nerve export-web</code> for Yeo-17 deep dive and epoch labels.
-        </p>
-      </div>
-
-      <div className="engagement-segments__chips">
+    <Collapsible defaultOpen={false} className="engagement-collapsible-section">
+      <CollapsibleTrigger className="engagement-collapsible-section__trigger">
+        <div className="engagement-collapsible-section__heading">
+          <h3 className="engagement-segments__title">Dominant network epochs</h3>
+          <p className="engagement-segments__hint">
+            Per-second z-score argmax segments with literature-style template labels.
+          </p>
+        </div>
+        <ChevronDownIcon className="engagement-row__chevron" aria-hidden />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="engagement-collapsible-section__content">
+        <div className="engagement-segments">
+          <div className="engagement-segments__chips">
         {ENGAGEMENT_NETWORK_ORDER.map((net) => {
           const frac = fractions[net];
           if (frac == null) return null;
@@ -155,6 +163,8 @@ export function DominantSegmentTimeline({
           No dominant segments ≥ {MIN_SEGMENT_SECONDS}s in this clip.
         </p>
       )}
-    </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

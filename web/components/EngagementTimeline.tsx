@@ -25,7 +25,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
 import { ChevronDownIcon } from "lucide-react";
 import { DominantSegmentTimeline } from "@/components/DominantSegmentTimeline";
@@ -36,6 +35,7 @@ interface EngagementTimelineProps {
   acoustic?: AcousticFeaturesData | null;
   currentFrame?: number;
   onSeek?: (frame: number) => void;
+  className?: string;
 }
 
 const CHART_W = 320;
@@ -382,6 +382,7 @@ export function EngagementTimeline({
   acoustic,
   currentFrame = 0,
   onSeek,
+  className,
 }: EngagementTimelineProps) {
   const [showAcoustic, setShowAcoustic] = useState(false);
   const frame = Math.max(0, Math.min(engagement.n_trs - 1, currentFrame));
@@ -391,7 +392,7 @@ export function EngagementTimeline({
     "var(--foreground)";
 
   return (
-    <Card className="mt-4">
+    <Card className={className}>
       <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Network engagement</CardTitle>
@@ -468,27 +469,22 @@ export function EngagementTimeline({
         </div>
 
         {engagement.derived.salience_events.trs.length > 0 && (
-          <>
-            <Separator />
-            <p className="text-xs text-muted-foreground">
-              Surprise events (Δz ≥{" "}
-              {engagement.derived.salience_events.threshold_z_derivative}):{" "}
-              {engagement.derived.salience_events.trs
-                .map((t) => `${t}s`)
-                .join(", ")}
-              {salienceSet.has(frame) ? " · at playhead" : ""}
-            </p>
-          </>
+          <p className="text-xs text-muted-foreground">
+            Surprise events (Δz ≥{" "}
+            {engagement.derived.salience_events.threshold_z_derivative}):{" "}
+            {engagement.derived.salience_events.trs
+              .map((t) => `${t}s`)
+              .join(", ")}
+            {salienceSet.has(frame) ? " · at playhead" : ""}
+          </p>
         )}
 
-        <Separator />
         <DominantSegmentTimeline
           engagement={engagement}
           currentFrame={frame}
           onSeek={onSeek}
         />
 
-        <Separator />
         <EngagementSummaries engagement={engagement} />
       </CardContent>
     </Card>

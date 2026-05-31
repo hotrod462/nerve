@@ -18,7 +18,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BrainColorbar } from "./BrainColorbar";
-import { StimulusAudio } from "./StimulusAudio";
 import { Timeline } from "./Timeline";
 
 export type SurfaceMode = "pial" | "half" | "inflated";
@@ -55,6 +54,10 @@ export interface BrainViewerProps {
   /** Per-TR dominant Yeo network keys — enables network-focus map mode. */
   dominantNetworkTr?: string[];
   analysisUrls?: BrainAnalysisUrls;
+  /** Parent owns playhead advancement (e.g. StimulusPlayback). */
+  externalPlayback?: boolean;
+  /** Hide transport controls when rendered elsewhere. */
+  showTimeline?: boolean;
 }
 
 type NiivueInstance = InstanceType<typeof import("@niivue/niivue").Niivue>;
@@ -109,6 +112,8 @@ export function BrainViewer({
   totalFrames: totalFramesProp,
   dominantNetworkTr,
   analysisUrls,
+  externalPlayback = false,
+  showTimeline = true,
 }: BrainViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -518,7 +523,7 @@ export function BrainViewer({
   }, [showYeoOverlay, ready, hasYeoOverlay]);
 
   useEffect(() => {
-    if (!ready || !playing) return;
+    if (!ready || !playing || externalPlayback) return;
 
     const nv = nvRef.current;
     if (!nv) return;
@@ -540,7 +545,7 @@ export function BrainViewer({
     }, 1000 / fps);
 
     return () => clearInterval(interval);
-  }, [ready, playing, fps, totalFrames]);
+  }, [ready, playing, fps, totalFrames, externalPlayback]);
 
   useEffect(() => {
     const nv = nvRef.current;
@@ -703,22 +708,15 @@ export function BrainViewer({
           <canvas ref={canvasRef} className="brain-canvas" />
         </div>
 
-        <StimulusAudio
-          src={stimulusAudioUrl}
-          frame={frame}
-          total={totalFrames}
-          playing={playing}
-          fps={fps}
-          onSeek={setFrame}
-        />
-
-        <Timeline
-          frame={frame}
-          total={totalFrames}
-          playing={playing}
-          onFrame={setFrame}
-          onPlaying={setPlaying}
-        />
+        {showTimeline ? (
+          <Timeline
+            frame={frame}
+            total={totalFrames}
+            playing={playing}
+            onFrame={setFrame}
+            onPlaying={setPlaying}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

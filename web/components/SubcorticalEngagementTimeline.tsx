@@ -30,13 +30,66 @@ interface SubcorticalEngagementTimelineProps {
   acoustic?: AcousticFeaturesData | null;
   currentFrame?: number;
   onSeek?: (frame: number) => void;
+  className?: string;
 }
 
 const CHART_W = 320;
 const CHART_H = 32;
 const PAD_X = 2;
 const PAD_Y = 4;
+const DOMINANT_FILL_ALPHA = 0.22;
 const ACOUSTIC_OVERLAY_ALPHA = 0.45;
+
+function fadedNetworkColor(color: string, alpha = DOMINANT_FILL_ALPHA): string {
+  const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (match) {
+    return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
+  }
+  return color;
+}
+
+function trSpanRect(
+  start: number,
+  end: number,
+  nTrs: number,
+  width: number,
+  height: number
+): { x: number; y: number; width: number; height: number } {
+  const innerW = width - PAD_X * 2;
+  const step = nTrs > 1 ? innerW / (nTrs - 1) : innerW;
+  const xStart = PAD_X + (start / Math.max(nTrs - 1, 1)) * innerW - step / 2;
+  const xEnd = PAD_X + (end / Math.max(nTrs - 1, 1)) * innerW + step / 2;
+
+  return {
+    x: Math.max(PAD_X, xStart),
+    y: 0,
+    width: Math.min(width - PAD_X, xEnd) - Math.max(PAD_X, xStart),
+    height,
+  };
+}
+
+function dominantSegments(
+  dominantRoiTr: string[],
+  roi: string
+): Array<{ start: number; end: number }> {
+  const segments: Array<{ start: number; end: number }> = [];
+  let start: number | null = null;
+
+  for (let i = 0; i < dominantRoiTr.length; i++) {
+    if (dominantRoiTr[i] === roi) {
+      if (start === null) start = i;
+    } else if (start !== null) {
+      segments.push({ start, end: i - 1 });
+      start = null;
+    }
+  }
+
+  if (start !== null) {
+    segments.push({ start, end: dominantRoiTr.length - 1 });
+  }
+
+  return segments;
+}
 
 function tracePath(values: number[], width: number, height: number): string {
   if (values.length === 0) return "";
@@ -95,6 +148,9 @@ function RegionRow({
     ? trace.zscore.indexOf(Math.max(...trace.zscore))
     : 0;
 
+  const dominantSegmentsForRoi = dominantSegments(dominantRoiTr, roi);
+  const dominantFill = fadedNetworkColor(color);
+
   return (
     <Collapsible className="engagement-row-block">
       <div className="engagement-row">
@@ -122,6 +178,19 @@ function RegionRow({
             role="img"
             aria-label={`${trace.headline} subcortical engagement`}
           >
+            {dominantSegmentsForRoi.map(({ start, end }) => {
+              const rect = trSpanRect(start, end, nTrs, CHART_W, CHART_H);
+              return (
+                <rect
+                  key={`${start}-${end}`}
+                  x={rect.x}
+                  y={rect.y}
+                  width={rect.width}
+                  height={rect.height}
+                  fill={dominantFill}
+                />
+              );
+            })}
             <line
               x1={PAD_X}
               y1={CHART_H / 2}
@@ -190,6 +259,7 @@ export function SubcorticalEngagementTimeline({
   acoustic,
   currentFrame = 0,
   onSeek,
+  className,
 }: SubcorticalEngagementTimelineProps) {
   const [showAcoustic, setShowAcoustic] = useState(false);
   const frame = Math.max(0, Math.min(subcortical.n_trs - 1, currentFrame));
@@ -201,7 +271,7 @@ export function SubcorticalEngagementTimeline({
     : [...SUBCORTICAL_DISPLAY_ORDER];
 
   return (
-    <Card className="mt-4">
+    <Card className={className}>
       <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Subcortical engagement</CardTitle>
