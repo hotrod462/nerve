@@ -19,6 +19,7 @@ from nerve.export.gifti_writer import (
     ensure_fsaverage5_assets,
     write_scalars_4d_gifti,
 )
+from nerve.export.subcortical_mesh import export_subcortical_meshes
 from nerve.export.npz_io import (
     load_contrast,
     load_prediction,
@@ -254,9 +255,13 @@ def export_web_bundle(
             manifest["matrices"]["subcortical_engagement"] = (
                 "matrices/subcortical_engagement.json"
             )
+            sub_mesh = export_subcortical_meshes(subcortical, mesh_dir)
+            manifest["mesh"]["subcortical"] = sub_mesh
             manifest["subcortical"] = {
                 "n_voxels": int(subcortical.data.shape[1]),
                 "space": subcortical.space,
+                "vmin": sub_mesh["vmin"],
+                "vmax": sub_mesh["vmax"],
             }
         if acoustic is not None:
             (matrices_dir / "acoustic_features.json").write_text(

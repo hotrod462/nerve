@@ -57,6 +57,11 @@ export interface MeshManifest {
   sulc?: { lh: string; rh: string };
   sulc_range?: { min: number; max: number };
   atlas?: MeshAtlasManifest;
+  subcortical?: {
+    rois: Array<{ id: string; geometry: string; activations: string }>;
+    vmin?: number;
+    vmax?: number;
+  };
 }
 
 export interface WebManifest {

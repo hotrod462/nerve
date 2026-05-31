@@ -81,6 +81,17 @@ function buildMeshBundle(base: string, mesh?: MeshManifest): MeshBundle | undefi
             : undefined,
         }
       : undefined,
+    subcortical: mesh.subcortical
+      ? {
+          rois: mesh.subcortical.rois.map((roi) => ({
+            id: roi.id,
+            geometry: bundleUrl(base, roi.geometry),
+            activations: bundleUrl(base, roi.activations),
+          })),
+          vmin: mesh.subcortical.vmin,
+          vmax: mesh.subcortical.vmax,
+        }
+      : undefined,
   };
 }
 

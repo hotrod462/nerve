@@ -19,8 +19,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BrainColorbar } from "./BrainColorbar";
 import { Timeline } from "./Timeline";
+import { SUBCORTICAL_COLORS } from "@/lib/subcortical";
 
 export type SurfaceMode = "pial" | "half" | "inflated";
+export type BrainStructureMode = "both" | "cortical" | "subcortical";
+
+export interface SubcorticalRoiMesh {
+  id: string;
+  geometry: string;
+  activations: string;
+}
+
+export interface SubcorticalMeshBundle {
+  rois: SubcorticalRoiMesh[];
+  vmin?: number;
+  vmax?: number;
+}
 
 export interface MeshBundle {
   surfaces?: Record<SurfaceMode, { lh: string; rh: string }>;
@@ -28,6 +42,7 @@ export interface MeshBundle {
   sulc?: { lh: string; rh: string };
   sulcRange?: { min: number; max: number };
   atlas?: MeshAtlasUrls;
+  subcortical?: SubcorticalMeshBundle;
 }
 
 export interface BrainAnalysisUrls {
@@ -83,6 +98,13 @@ const FACE_OVERLAY_RGBA: [number, number, number, number] = [48, 50, 58, 110];
 
 const FACE_OVERLAY_OPACITY = 0.2;
 const YEO_OVERLAY_OPACITY = 0.42;
+const SUBCORTICAL_MESH_OPACITY = 0.92;
+
+function rgbToRgba255(color: string): [number, number, number, number] {
+  const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return [190, 190, 195, 255];
+  return [Number(match[1]), Number(match[2]), Number(match[3]), 255];
+}
 
 const MAP_MODE_LABELS: Record<BrainMapMode, string> = {
   absolute: "Absolute",
@@ -90,8 +112,26 @@ const MAP_MODE_LABELS: Record<BrainMapMode, string> = {
   network: "Network",
 };
 
+const STRUCTURE_MODE_LABELS: Record<BrainStructureMode, string> = {
+  both: "Both",
+  cortical: "Cortical",
+  subcortical: "Subcortical",
+};
+
 function isCortexMesh(m: { type?: string; opacity?: number }): boolean {
   return m.type !== "connectome" && (m.opacity ?? 1) >= 0.95;
+}
+
+function isSubcorticalMesh(m: {
+  type?: string;
+  opacity?: number;
+  layers?: unknown[];
+}): boolean {
+  return (
+    !isCortexMesh(m) &&
+    (m.opacity ?? 1) > 0.5 &&
+    (m.layers?.length ?? 0) > 0
+  );
 }
 
 export function BrainViewer({
@@ -126,6 +166,9 @@ export function BrainViewer({
   const yeoRhRef = useRef<number[] | null>(null);
   const yeoOrderRef = useRef<string[]>([]);
   const nFramesRef = useRef(45);
+  const cortexMeshIdsRef = useRef<(string | number)[]>([]);
+  const faceMeshIdsRef = useRef<(string | number)[]>([]);
+  const subcorticalMeshIdsRef = useRef<(string | number)[]>([]);
   const mapModeRef = useRef<BrainMapMode>("absolute");
   const showYeoOverlayRef = useRef(false);
 
@@ -137,6 +180,7 @@ export function BrainViewer({
   const [showLabels, setShowLabels] = useState(false);
   const [showFace, setShowFace] = useState(true);
   const [showYeoOverlay, setShowYeoOverlay] = useState(false);
+  const [structureMode, setStructureMode] = useState<BrainStructureMode>("both");
   const [mapMode, setMapMode] = useState<BrainMapMode>("absolute");
   const [ready, setReady] = useState(false);
 
@@ -162,6 +206,9 @@ export function BrainViewer({
   const hasNetworkMode = Boolean(
     analysisUrls?.vertexYeo && dominantNetworkTr?.length
   );
+  const hasSubcortical = Boolean(mesh?.subcortical?.rois?.length);
+  const subcorticalVmin = mesh?.subcortical?.vmin ?? vmin;
+  const subcorticalVmax = mesh?.subcortical?.vmax ?? vmax;
 
   const useLayered =
     Boolean(mesh?.activations?.lh && mesh?.surfaces?.[surface]?.lh);
@@ -274,6 +321,38 @@ export function BrainViewer({
     [colormap, vmin, vmax]
   );
 
+  const configureSubcorticalLayer = useCallback(
+    async (nv: NiivueInstance, meshId: string) => {
+      const setLayer = nv.setMeshLayerProperty.bind(nv) as (
+        id: string,
+        layer: number,
+        key: string,
+        val: string | number | boolean
+      ) => Promise<void>;
+      await setLayer(meshId, 0, "colormap", colormap);
+      await setLayer(meshId, 0, "cal_min", subcorticalVmin);
+      await setLayer(meshId, 0, "cal_max", subcorticalVmax);
+      await setLayer(meshId, 0, "opacity", 1);
+      await setLayer(meshId, 0, "isTransparentBelowCalMin", true);
+      await setLayer(meshId, 0, "frame4D", frameRef.current);
+    },
+    [colormap, subcorticalVmin, subcorticalVmax]
+  );
+
+  const syncActivationFrames = useCallback(
+    (nv: NiivueInstance, nextFrame: number) => {
+      const layerIdx = activationLayerRef.current;
+      for (const m of (nv.meshes ?? []).filter(isCortexMesh)) {
+        void nv.setMeshLayerProperty(m.id, layerIdx, "frame4D", nextFrame);
+      }
+      for (const id of subcorticalMeshIdsRef.current) {
+        void nv.setMeshLayerProperty(id, 0, "frame4D", nextFrame);
+      }
+      nv.drawScene();
+    },
+    []
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -367,6 +446,29 @@ export function BrainViewer({
           );
         }
 
+        if (mesh?.subcortical?.rois?.length) {
+          for (const roi of mesh.subcortical.rois) {
+            const rgba = rgbToRgba255(
+              SUBCORTICAL_COLORS[roi.id] ?? "rgb(190, 190, 195)"
+            );
+            meshLoads.push({
+              url: roi.geometry,
+              rgba255: rgba,
+              opacity: SUBCORTICAL_MESH_OPACITY,
+              layers: [
+                {
+                  url: roi.activations,
+                  colormap,
+                  cal_min: subcorticalVmin,
+                  cal_max: subcorticalVmax,
+                  opacity: 1,
+                  frame4D: frameRef.current,
+                },
+              ],
+            });
+          }
+        }
+
         if (useLayered && actLh && actRh) {
           meshLoads.push(
             {
@@ -400,11 +502,21 @@ export function BrainViewer({
 
         if (cancelled) return;
 
+        cortexMeshIdsRef.current = [];
+        faceMeshIdsRef.current = [];
+        subcorticalMeshIdsRef.current = [];
         for (const m of nv.meshes ?? []) {
           if (!isCortexMesh(m)) {
             nv.setMeshShader(m.id, "Matte");
+            if (isSubcorticalMesh(m)) {
+              await configureSubcorticalLayer(nv, String(m.id));
+              subcorticalMeshIdsRef.current.push(m.id);
+            } else {
+              faceMeshIdsRef.current.push(m.id);
+            }
             continue;
           }
+          cortexMeshIdsRef.current.push(m.id);
           if (useLayered && actLh && actRh) {
             await configureBoldLayer(nv, m.id, activationLayerRef.current);
           } else {
@@ -494,12 +606,16 @@ export function BrainViewer({
     vmax,
     configureBoldLayer,
     configureEmbeddedScalars,
+    configureSubcorticalLayer,
     totalFramesProp,
     analysisVertexYeoUrl,
     analysisAtlasLutUrl,
     hasYeoOverlay,
     yeoLhUrl,
     yeoRhUrl,
+    mesh?.subcortical,
+    subcorticalVmin,
+    subcorticalVmax,
   ]);
 
   useEffect(() => {
@@ -529,37 +645,61 @@ export function BrainViewer({
     if (!nv) return;
 
     const cortexMeshes = (nv.meshes ?? []).filter(isCortexMesh);
-    if (cortexMeshes.length === 0) return;
+    if (
+      cortexMeshes.length === 0 &&
+      subcorticalMeshIdsRef.current.length === 0
+    ) {
+      return;
+    }
 
-    const layerIdx = activationLayerRef.current;
     const n = totalFrames || 45;
 
     const interval = setInterval(() => {
       const next = (frameRef.current + 1) % n;
-      for (const m of cortexMeshes) {
-        void nv.setMeshLayerProperty(m.id, layerIdx, "frame4D", next);
-      }
-      nv.drawScene();
+      syncActivationFrames(nv, next);
       onFrameChangeRef.current?.(next);
       if (!onFrameChangeRef.current) setInternalFrame(next);
     }, 1000 / fps);
 
     return () => clearInterval(interval);
-  }, [ready, playing, fps, totalFrames, externalPlayback]);
+  }, [ready, playing, fps, totalFrames, externalPlayback, syncActivationFrames]);
+
+  useEffect(() => {
+    const nv = nvRef.current;
+    if (!nv || !ready) return;
+    syncActivationFrames(nv, frame);
+  }, [frame, ready, syncActivationFrames]);
 
   useEffect(() => {
     const nv = nvRef.current;
     if (!nv || !ready) return;
 
-    const cortexMeshes = (nv.meshes ?? []).filter(isCortexMesh);
-    if (cortexMeshes.length === 0) return;
+    const showCortex =
+      structureMode === "both" || structureMode === "cortical";
+    const showSub =
+      hasSubcortical &&
+      (structureMode === "both" || structureMode === "subcortical");
+    const setMeshOpacity = (id: string | number, opacity: number) => {
+      if (nv.getMeshIndexByID(id) < 0) return;
+      // Niivue mesh ids are UUID strings; typings only declare number.
+      nv.setMeshProperty(id as number, "opacity", opacity);
+    };
 
-    const layerIdx = activationLayerRef.current;
-    for (const m of cortexMeshes) {
-      void nv.setMeshLayerProperty(m.id, layerIdx, "frame4D", frame);
+    for (const id of cortexMeshIdsRef.current) {
+      setMeshOpacity(id, showCortex ? 1 : 0);
+    }
+    for (const id of subcorticalMeshIdsRef.current) {
+      setMeshOpacity(id, showSub ? SUBCORTICAL_MESH_OPACITY : 0);
+    }
+    const faceOpacity =
+      showCortex && showFace && surface !== "inflated"
+        ? FACE_OVERLAY_OPACITY
+        : 0;
+    for (const id of faceMeshIdsRef.current) {
+      setMeshOpacity(id, faceOpacity);
     }
     nv.drawScene();
-  }, [frame, ready]);
+  }, [structureMode, ready, hasSubcortical, showFace, surface]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -664,6 +804,30 @@ export function BrainViewer({
                 >
                   <ToggleGroupItem value="off">Off</ToggleGroupItem>
                   <ToggleGroupItem value="on">On</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
+            {hasSubcortical && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  View
+                </span>
+                <ToggleGroup
+                  value={[structureMode]}
+                  onValueChange={(values) => {
+                    const next = values[0] as BrainStructureMode | undefined;
+                    if (next) setStructureMode(next);
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  {(
+                    Object.keys(STRUCTURE_MODE_LABELS) as BrainStructureMode[]
+                  ).map((mode) => (
+                    <ToggleGroupItem key={mode} value={mode}>
+                      {STRUCTURE_MODE_LABELS[mode]}
+                    </ToggleGroupItem>
+                  ))}
                 </ToggleGroup>
               </div>
             )}

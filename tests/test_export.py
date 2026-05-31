@@ -146,6 +146,12 @@ def test_export_web_bundle(
     assert sub_eng["regions"]["Hippocampus"]["headline"] == "Memory"
     assert manifest["matrices"]["subcortical_engagement"] == "matrices/subcortical_engagement.json"
     assert manifest["subcortical"]["n_voxels"] == N_VOXELS_SUBCORTICAL
+    assert "mesh" in manifest and "subcortical" in manifest["mesh"]
+    sub_mesh = manifest["mesh"]["subcortical"]
+    assert len(sub_mesh["rois"]) == 7
+    for roi in sub_mesh["rois"]:
+        assert (web_dir / roi["geometry"]).is_file()
+        assert (web_dir / roi["activations"]).is_file()
     assert manifest["matrices"]["engagement"] == "matrices/engagement.json"
     assert manifest["matrices"]["vertex_yeo"] == "matrices/vertex_yeo.json"
 
