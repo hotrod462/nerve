@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/JsonLd";
 import { SiteNav } from "@/components/SiteNav";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ export default function RootLayout({
         <SiteNav />
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
