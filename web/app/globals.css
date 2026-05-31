@@ -315,14 +315,99 @@ canvas.brain-canvas {
   height: 100%;
 }
 
+.track-brain-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+  overflow: hidden;
+}
+
+.track-brain-panel__trigger {
+  align-items: center;
+  padding: 0.85rem 1rem;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.track-brain-panel__trigger:hover {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+
+.track-brain-panel__trigger[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+
+.track-brain-panel__icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.track-brain-panel__hint {
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.track-brain-panel__toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--background);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.track-brain-panel__trigger:hover .track-brain-panel__toggle {
+  border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+}
+
+.track-brain-panel__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--foreground);
+}
+
+.track-brain-panel__toggle-label {
+  white-space: nowrap;
+}
+
+.track-brain-panel__content {
+  padding: 0.75rem 1rem 1rem;
+}
+
 .track-brain-panel__title {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
-.track-brain-panel__trigger {
-  padding-bottom: 0.5rem;
+@media (max-width: 640px) {
+  .track-brain-panel__toggle-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .track-brain-panel__toggle {
+    padding: 0.45rem;
+  }
 }
 
 .engagement-segments__title {

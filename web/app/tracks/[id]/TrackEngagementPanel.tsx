@@ -15,7 +15,7 @@ import type { BrainViewerProps } from "@/components/BrainViewer";
 import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
 import type { SubcorticalEngagementData } from "@/lib/subcortical";
 import { SubcorticalEngagementTimeline } from "@/components/SubcorticalEngagementTimeline";
-import { ChevronDownIcon } from "lucide-react";
+import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const BrainViewer = dynamic(
@@ -41,6 +41,7 @@ export function TrackEngagementPanel({
 }) {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [brainOpen, setBrainOpen] = useState(false);
 
   const handleFrameChange = useCallback((f: number) => {
     setFrame(f);
@@ -66,19 +67,30 @@ export function TrackEngagementPanel({
   return (
     <>
       <Collapsible
-        defaultOpen={false}
+        open={brainOpen}
+        onOpenChange={setBrainOpen}
         className="track-brain-panel engagement-collapsible-section mt-5"
       >
-        <CollapsibleTrigger className="engagement-collapsible-section__trigger track-brain-panel__trigger">
+        <CollapsibleTrigger
+          className="engagement-collapsible-section__trigger track-brain-panel__trigger"
+          aria-label={brainOpen ? "Collapse 3D brain viewer" : "Expand 3D brain viewer"}
+        >
+          <BrainIcon className="track-brain-panel__icon" aria-hidden />
           <div className="engagement-collapsible-section__heading">
             <h2 className="track-brain-panel__title">Brain viewer</h2>
-            <p className="engagement-segments__hint">
-              3D cortical activation synced to playback — expand to explore spatial maps.
+            <p className="track-brain-panel__hint">
+              3D cortical activation synced to playback — click to{" "}
+              {brainOpen ? "hide" : "show"} the spatial map.
             </p>
           </div>
-          <ChevronDownIcon className="engagement-row__chevron" aria-hidden />
+          <span className="track-brain-panel__toggle" aria-hidden>
+            <span className="track-brain-panel__toggle-label">
+              {brainOpen ? "Collapse" : "Expand"}
+            </span>
+            <ChevronDownIcon className="engagement-row__chevron track-brain-panel__chevron" />
+          </span>
         </CollapsibleTrigger>
-        <CollapsibleContent className="engagement-collapsible-section__content">
+        <CollapsibleContent className="engagement-collapsible-section__content track-brain-panel__content">
           <BrainViewer
             {...brainProps}
             frame={frame}

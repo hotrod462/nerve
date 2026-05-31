@@ -100,6 +100,10 @@ const FACE_OVERLAY_OPACITY = 0.2;
 const YEO_OVERLAY_OPACITY = 0.42;
 const SUBCORTICAL_MESH_OPACITY = 0.92;
 
+/** Auto-rotate when the user is not interacting with the canvas. */
+const IDLE_ROTATE_RESUME_MS = 2800;
+const IDLE_ROTATE_DEG_PER_SEC = 14;
+
 function rgbToRgba255(color: string): [number, number, number, number] {
   const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!match) return [190, 190, 195, 255];
@@ -711,6 +715,69 @@ export function BrainViewer({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let rafId = 0;
+    let lastTs = 0;
+    let autoRotating = true;
+
+    const scheduleResume = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        autoRotating = true;
+        lastTs = 0;
+      }, IDLE_ROTATE_RESUME_MS);
+    };
+
+    const pauseAutoRotate = () => {
+      autoRotating = false;
+      scheduleResume();
+    };
+
+    const onPointerDown = () => pauseAutoRotate();
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.buttons !== 0) pauseAutoRotate();
+    };
+    const onWheel = () => pauseAutoRotate();
+
+    const tick = (ts: number) => {
+      rafId = requestAnimationFrame(tick);
+      if (!autoRotating) return;
+
+      const nv = nvRef.current;
+      if (!nv?.gl) return;
+
+      if (!lastTs) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+
+      nv.scene.renderAzimuth =
+        (nv.scene.renderAzimuth + IDLE_ROTATE_DEG_PER_SEC * dt) % 360;
+      nv.drawScene();
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("wheel", onWheel, { passive: true });
+    canvas.addEventListener("touchstart", onPointerDown, { passive: true });
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (idleTimer) clearTimeout(idleTimer);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [ready]);
 
   if (error) {
     return (
