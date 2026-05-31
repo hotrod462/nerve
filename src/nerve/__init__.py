@@ -1,4 +1,8 @@
-"""Nerve — interpretability layer on TRIBE v2 BOLD predictions."""
+"""Nerve — interpretability layer on TRIBE v2 BOLD predictions.
+
+Turns audio into predicted cortical (T, 20484) and subcortical engagement,
+with Schaefer/Yeo rollup and web export. See llms.txt and docs/AI.md.
+"""
 
 from nerve.types import (
     BrainPrediction,

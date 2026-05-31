@@ -1,0 +1,45 @@
+# Nerve
+
+> Nerve is an open-source interpretability layer on Meta TRIBE v2 that turns audio into predicted cortical and subcortical brain engagement timelines and a synced 3D Niivue viewer. Acoustic-only, in-silico group-average BOLD — not real MRI data.
+
+Important facts:
+
+- **Input:** WAV audio (songs, clips, podcasts, social hooks)
+- **Output:** `(T, 20484)` fsaverage5 cortical vertices at 1 Hz + Harvard-Oxford subcortical voxels
+- **CLI:** `nerve predict`, `nerve export-web`, `nerve contrast`, `nerve doctor`
+- **Web:** Next.js gallery at `/`, track analysis at `/tracks/{id}`, compare at `/compare`, matrix at `/matrix`
+- **License:** TRIBE v2 weights are CC BY-NC 4.0 (non-commercial research)
+
+## Core documentation
+
+- [README](README.md): Plain-English overview, metrics guide, use cases, quick start
+- [AI context (full)](docs/AI.md): Structured facts, FAQ, CLI reference for LLM ingestion
+- [Design & data contracts](docs/DESIGN.md): Architecture, BrainPrediction schema, web bundle layout
+- [Limitations](docs/LIMITATIONS.md): Scientific and technical caveats — read before citing Nerve
+
+## Python package
+
+- Entry point: `nerve` CLI (`src/nerve/cli.py`)
+- Inference: `src/nerve/backends/tribe_v2.py` — wraps `facebook/tribev2` + `facebook/tribev2-subcortical`
+- Parcellation: Schaefer 2018 (default 400 parcels), Yeo-7/17 networks (`src/nerve/parcellation/`)
+- Engagement export: `src/nerve/analysis/engagement.py`, `subcortical_engagement.py`
+- Web handoff: `src/nerve/export/web_bundle.py` → `{run}/web/manifest.json`
+
+## Web frontend metrics (headlines)
+
+Cortical Yeo networks: Focus (Control), Surprise (Salience), Tracking (Dorsal attention), Resonance (Default), Feeling (Limbic), Pulse (Somatomotor), Imagery (Visual).
+
+Subcortical ROIs: Reward (Accumbens), Anticipation (Caudate), Groove (Putamen), Integration (Pallidum), Arousal (Amygdala), Memory (Hippocampus), Relay (Thalamus).
+
+All traces are z-scored within each clip (0 = typical for that audio file).
+
+## Examples
+
+- [Genre contrast script](examples/music_genre_contrast.py): Beethoven Egmont vs EDM — predict, contrast, export-web
+- [Batch predict](scripts/batch_predict_user.sh): Process user manifest tracks end-to-end
+
+## Optional
+
+- [Stimuli setup](stimuli/README.md): OSS demo tracks and personal `manifest.user.yaml`
+- [Engagement batch analysis](scripts/analyze_engagement.py): CSV summaries across runs
+- [GEO implementation notes](docs/GEO.md): How this repo optimizes for generative engines

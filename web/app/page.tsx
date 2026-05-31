@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GeoFaq } from "@/components/GeoFaq";
 import {
   Card,
   CardContent,
@@ -6,7 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { siteMetadata } from "@/lib/geo";
 import { listRuns } from "@/lib/loadRun";
+
+export const metadata = siteMetadata({
+  title: "Track gallery",
+  description:
+    "Browse in-silico TRIBE v2 brain engagement predictions — cortical Yeo networks, subcortical ROIs, and synced 3D Niivue viewer.",
+});
 
 export default function GalleryPage() {
   const runs = listRuns().filter((r) => !r.manifest.contrast);
@@ -59,6 +67,7 @@ uv run nerve export-web --run data/outputs/runs/egmont/`}
           </Link>
         ))}
       </div>
+      <GeoFaq />
     </div>
   );
 }

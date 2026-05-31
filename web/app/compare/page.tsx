@@ -7,7 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { siteMetadata } from "@/lib/geo";
 import { listRuns } from "@/lib/loadRun";
+
+export const metadata = siteMetadata({
+  title: "Compare tracks",
+  description:
+    "Side-by-side TRIBE v2 predicted brain engagement for two audio clips, with optional A−B contrast maps.",
+});
 
 export default async function ComparePage({
   searchParams,

@@ -1,0 +1,29 @@
+# Nerve — web gallery
+
+> Next.js gallery for Nerve: predicted cortical and subcortical brain engagement from audio (TRIBE v2). In-silico group-average BOLD — not real MRI.
+
+## App routes
+
+- `/` — track gallery (all exported runs)
+- `/tracks/{id}` — engagement timelines, subcortical panel, Niivue brain viewer synced to audio
+- `/compare?a={id}&b={id}` — side-by-side viewers + optional contrast map
+- `/matrix` — stimulus × Schaefer parcel mean matrix and L2 similarity heatmap
+
+## Metrics on track pages
+
+Cortical Yeo-7 networks (z-scored within each clip): Focus, Surprise, Tracking, Resonance, Feeling, Pulse, Imagery.
+
+Subcortical Harvard-Oxford ROIs: Reward, Anticipation, Groove, Integration, Arousal, Memory, Relay.
+
+Derived: dominant network/ROI epochs, epoch template badges, 8 s rolling coupling, acoustic overlays (loudness, brightness, timbre change, onsets).
+
+Brain viewer: pial/half/inflated surfaces; map modes absolute, residual, network; View both/cortical/subcortical.
+
+## Python package & CLI
+
+The inference pipeline lives in the same monorepo. See the repository root `llms.txt` and `docs/AI.md` for `nerve predict`, `nerve export-web`, data shapes, and limitations.
+
+## Optional
+
+- `/llms.txt` (this file) — web-focused index
+- Repository `docs/GEO.md` — generative engine optimization notes

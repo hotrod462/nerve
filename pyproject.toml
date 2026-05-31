@@ -1,9 +1,32 @@
 [project]
 name = "nerve"
 version = "0.1.0"
-description = "Interpretability layer on TRIBE v2 BOLD predictions"
+description = "Interpretability layer on TRIBE v2 — audio to predicted cortical and subcortical BOLD with web export"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
+keywords = [
+    "fmri",
+    "tribe",
+    "tribev2",
+    "bold",
+    "neuroimaging",
+    "music",
+    "brain",
+    "interpretability",
+    "schaefer",
+    "yeo",
+    "subcortical",
+    "niivue",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy==2.2.6",
     "torch>=2.5.1,<2.7",
@@ -31,6 +54,16 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nerve"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/llms.txt",
+    "/AGENTS.md",
+    "/docs/AI.md",
+    "/docs/GEO.md",
+    "/docs/DESIGN.md",
+    "/docs/LIMITATIONS.md",
+]
 
 [tool.uv.sources]
 tribev2 = { git = "https://github.com/facebookresearch/tribev2.git", rev = "34f52344" }

@@ -1,8 +1,10 @@
 import path from "path";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DeviceBadge } from "@/components/DeviceBadge";
 import type { MeshBundle, SurfaceMode } from "@/components/BrainViewer";
 import { TrackEngagementPanel } from "./TrackEngagementPanel";
+import { trackPageMetadata } from "@/lib/geo";
 import { getRun, readJsonFile } from "@/lib/loadRun";
 import type { MeshManifest } from "@/lib/loadRun";
 import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
@@ -93,6 +95,22 @@ function buildMeshBundle(base: string, mesh?: MeshManifest): MeshBundle | undefi
         }
       : undefined,
   };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const run = getRun(id);
+  if (!run) {
+    return { title: "Track not found" };
+  }
+  return trackPageMetadata(run.manifest.stimulus?.id ?? run.id, {
+    genre: run.manifest.stimulus?.genre,
+    durationTr: run.manifest.T,
+  });
 }
 
 export default async function TrackPage({

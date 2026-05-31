@@ -1,4 +1,7 @@
-"""Nerve CLI — predict, contrast, export-web, doctor."""
+"""Nerve CLI — predict, contrast, export-web, doctor.
+
+Generative-engine-friendly entry point. Full structured docs: docs/AI.md and llms.txt.
+"""
 
 from __future__ import annotations
 

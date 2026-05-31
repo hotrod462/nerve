@@ -1,5 +1,6 @@
 import path from "path";
 import { listRuns, readJsonFile, RUNS_DIR } from "@/lib/loadRun";
+import { siteMetadata } from "@/lib/geo";
 import {
   Card,
   CardContent,
@@ -21,6 +22,12 @@ interface StimulusParcel {
   data: number[][];
   n_parcels: number;
 }
+
+export const metadata = siteMetadata({
+  title: "Matrix explorer",
+  description:
+    "Stimulus × Schaefer parcel mean activation matrix and pairwise L2 similarity across your Nerve library.",
+});
 
 export default function MatrixPage() {
   const runs = listRuns().filter((r) => r.manifest.stimulus && !r.manifest.contrast);

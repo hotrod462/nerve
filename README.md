@@ -397,3 +397,7 @@ uv run pytest -m "not slow"    # skip slow integration tests
 
 - [DESIGN.md](docs/DESIGN.md) — architecture, data contracts, module map
 - [LIMITATIONS.md](docs/LIMITATIONS.md) — scientific and technical caveats
+- [docs/AI.md](docs/AI.md) — structured FAQ and facts for LLMs / coding agents
+- [docs/GEO.md](docs/GEO.md) — generative engine optimization (llms.txt, JSON-LD, metadata)
+- [llms.txt](llms.txt) — machine-readable project index ([llms.txt spec](https://llmstxt.org/))
+- [AGENTS.md](AGENTS.md) — onboarding for AI coding agents
