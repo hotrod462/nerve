@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DeviceBadge } from "@/components/DeviceBadge";
 import type { SurfaceMode } from "@/components/BrainViewer";
 import { TrackEngagementPanel } from "./TrackEngagementPanel";
 import { trackPageMetadata } from "@/lib/geo";
@@ -66,10 +65,6 @@ export default async function TrackPage({
               {run.manifest.stimulus.genre}
             </span>
           )}
-          <DeviceBadge
-            resolved={run.manifest.device_report?.resolved}
-            deviceOk={run.manifest.device_report?.device_ok}
-          />
         </div>
       </div>
 

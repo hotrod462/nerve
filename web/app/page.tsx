@@ -1,13 +1,11 @@
-import Link from "next/link";
 import { GeoFaq } from "@/components/GeoFaq";
+import { TrackGalleryRow } from "@/components/TrackGalleryRow";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { siteMetadata } from "@/lib/geo";
+import { sortGalleryRuns } from "@/lib/galleryOrder";
 import { listRuns } from "@/lib/loadRun";
 
 export const metadata = siteMetadata({
@@ -19,7 +17,9 @@ export const metadata = siteMetadata({
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
-  const runs = (await listRuns()).filter((r) => !r.manifest.contrast);
+  const runs = sortGalleryRuns(
+    (await listRuns()).filter((r) => !r.manifest.contrast)
+  );
 
   if (runs.length === 0) {
     return (
@@ -49,24 +49,7 @@ uv run nerve export-web --run data/outputs/runs/egmont/`}
       </div>
       <div className="grid gap-3">
         {runs.map((run) => (
-          <Link key={run.id} href={`/tracks/${run.id}`} className="block">
-            <Card className="transition-colors hover:bg-muted/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex flex-wrap items-center gap-2">
-                  {run.manifest.stimulus?.id ?? run.id}
-                  {run.manifest.stimulus?.genre && (
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {run.manifest.stimulus.genre}
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  T={run.manifest.T ?? "?"} ·{" "}
-                  {run.manifest.device_report?.resolved ?? "—"}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
+          <TrackGalleryRow key={run.id} run={run} />
         ))}
       </div>
       <GeoFaq />
