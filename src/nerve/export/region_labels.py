@@ -90,7 +90,7 @@ def write_yeo_region_labels(
     hemi: Literal["lh", "rh"],
     leader_length: float = 12.0,
 ) -> list[dict[str, Any]]:
-    """Write lh or rh Yeo-7 network label anchors."""
+    """Write lh or rh Yeo network label anchors."""
     pts, faces = _pointset_and_faces(load_gifti(geometry_path))
     entries = _network_label_entries(
         pts,
@@ -101,10 +101,11 @@ def write_yeo_region_labels(
         leader_length=leader_length,
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    atlas_name = "Schaefer2018_Yeo17" if len(network_order) > 7 else "Schaefer2018_Yeo7"
     out_path.write_text(
         json.dumps(
             {
-                "atlas": "Schaefer2018_Yeo7",
+                "atlas": atlas_name,
                 "n_regions": len(entries),
                 "regions": entries,
             }

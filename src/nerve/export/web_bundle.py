@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from nerve.analysis.acoustic_features import try_extract_acoustic_features
 from nerve.analysis.contrast import compute_contrast
 from nerve.analysis.engagement import compute_engagement
 from nerve.export.atlas_export import export_atlas_mesh
@@ -18,8 +19,8 @@ from nerve.export.gifti_writer import (
     write_scalars_4d_gifti,
 )
 from nerve.export.npz_io import load_contrast, load_prediction, write_run_manifest
-from nerve.parcellation.schaefer import SchaeferParcellation
-from nerve.types import BrainPrediction, ContrastResult, N_VERTICES_FSAVERAGE5
+from nerve.parcellation.schaefer import YEO_NETWORK_ORDER, SchaeferParcellation
+from nerve.types import BrainPrediction, ContrastResult, N_VERTICES_FSAVERAGE5, split_hemispheres
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,22 @@ def _parcel_json(parceler: SchaeferParcellation, vertex_ts: np.ndarray) -> dict[
     }
 
 
+def _write_vertex_yeo_json(parceler: SchaeferParcellation, matrices_dir: Path) -> None:
+    """Per-vertex macro Yeo IDs (1–7) for client-side map masking."""
+    yeo_ids = parceler.vertex_yeo_ids(macro=True)
+    lh_yeo, rh_yeo = split_hemispheres(yeo_ids)
+    doc = {
+        "yeo_order": list(YEO_NETWORK_ORDER),
+        "macro_order": list(YEO_NETWORK_ORDER),
+        "lh": lh_yeo.astype(np.int16).tolist(),
+        "rh": rh_yeo.astype(np.int16).tolist(),
+    }
+    (matrices_dir / "vertex_yeo.json").write_text(
+        json.dumps(doc),
+        encoding="utf-8",
+    )
+
+
 def _write_engagement_json(
     parceler: SchaeferParcellation,
     vertex_ts: np.ndarray,
@@ -75,9 +92,22 @@ def _write_engagement_json(
     )
 
 
+def _resolve_stimulus_wav(stimulus_path: str | None) -> Path | None:
+    if not stimulus_path:
+        return None
+    path = Path(stimulus_path)
+    if path.is_file():
+        return path
+    repo_path = REPO_ROOT / path
+    if repo_path.is_file():
+        return repo_path
+    return None
+
+
 def export_web_bundle(
     run_dir: str | Path,
     n_parcels: int = 400,
+    yeo_networks: int = 17,
     colormap: str = "redyell",
 ) -> Path:
     """
@@ -108,10 +138,11 @@ def export_web_bundle(
             f"No prediction.npz or contrast.npz in {run_dir}"
         )
 
-    parceler = SchaeferParcellation(n_parcels=n_parcels)
+    parceler = SchaeferParcellation(n_parcels=n_parcels, yeo_networks=yeo_networks)
     lh_mesh, rh_mesh = copy_mesh_templates(mesh_dir, ASSETS_FSAVERAGE5)
     assets = ensure_fsaverage5_assets(ASSETS_FSAVERAGE5)
     atlas_manifest = export_atlas_mesh(mesh_dir, matrices_dir, parceler)
+    _write_vertex_yeo_json(parceler, matrices_dir)
 
     manifest: dict[str, Any] = {
         "run_id": run_dir.name,
@@ -175,7 +206,23 @@ def export_web_bundle(
             matrices_dir,
             inference_mode=prediction.inference_mode.value,
         )
-        manifest["matrices"] = {"engagement": "matrices/engagement.json"}
+        wav_path = _resolve_stimulus_wav(prediction.stimulus.path)
+        acoustic = try_extract_acoustic_features(
+            wav_path,
+            n_trs=int(ts.shape[0]),
+            fps=manifest.get("fps", 1),
+        )
+        manifest["matrices"] = {
+            "engagement": "matrices/engagement.json",
+            "vertex_yeo": "matrices/vertex_yeo.json",
+            "atlas": "matrices/atlas.json",
+        }
+        if acoustic is not None:
+            (matrices_dir / "acoustic_features.json").write_text(
+                json.dumps(acoustic),
+                encoding="utf-8",
+            )
+            manifest["matrices"]["acoustic_features"] = "matrices/acoustic_features.json"
 
     if contrast is not None:
         vm = contrast.vertex_map
@@ -213,7 +260,7 @@ def export_multi_stimulus_matrix(
     n_parcels: int = 400,
 ) -> None:
     """Build stimulus×parcel matrix JSON for /matrix page."""
-    parceler = SchaeferParcellation(n_parcels=n_parcels)
+    parceler = SchaeferParcellation(n_parcels=n_parcels, yeo_networks=17)
     rows = []
     ids = []
     for rd in run_dirs:

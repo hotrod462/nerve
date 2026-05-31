@@ -25,7 +25,7 @@ uv run nerve doctor
 uv run python scripts/verify_stimuli.py stimuli/processed/
 
 uv run nerve predict \
-  --audio stimuli/processed/musopen_egmont_45s.wav \
+  --audio stimuli/processed/musopen_egmont.wav \
   --out data/outputs/runs/egmont/
 uv run nerve export-web --run data/outputs/runs/egmont/
 

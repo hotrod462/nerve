@@ -13,7 +13,13 @@ from nibabel import gifti
 from nerve.export.border_edges import write_border_edges
 from nerve.export.gifti_writer import ensure_fsaverage5_assets, save_gifti_uncompressed
 from nerve.export.region_labels import write_yeo_region_labels
-from nerve.parcellation.schaefer import YEO_NETWORK_ORDER, SchaeferParcellation
+from nerve.parcellation.schaefer import (
+    YEO_17_NETWORK_ORDER,
+    YEO_17_TO_MACRO,
+    YEO_NETWORK_ORDER,
+    SchaeferParcellation,
+    yeo_network_order,
+)
 from nerve.types import split_hemispheres
 
 logger = logging.getLogger(__name__)
@@ -27,6 +33,26 @@ YEO_RGB: dict[str, tuple[int, int, int]] = {
     "Limbic": (220, 0, 115),
     "Cont": (120, 94, 224),
     "Default": (255, 0, 0),
+}
+
+YEO_17_RGB: dict[str, tuple[int, int, int]] = {
+    "VisCent": (120, 18, 134),
+    "VisPeri": (160, 60, 170),
+    "SomMotA": (70, 130, 180),
+    "SomMotB": (110, 160, 205),
+    "DorsAttnA": (0, 118, 14),
+    "DorsAttnB": (40, 160, 50),
+    "SalVentAttnA": (230, 148, 34),
+    "SalVentAttnB": (255, 190, 90),
+    "LimbicA": (220, 0, 115),
+    "LimbicB": (255, 80, 150),
+    "ContA": (120, 94, 224),
+    "ContB": (150, 120, 235),
+    "ContC": (180, 150, 245),
+    "DefaultA": (255, 0, 0),
+    "DefaultB": (255, 80, 80),
+    "DefaultC": (255, 130, 130),
+    "TempPar": (200, 40, 40),
 }
 
 
@@ -74,15 +100,16 @@ def _write_label_gifti(labels: np.ndarray, out_path: Path) -> Path:
     return out_path
 
 
-def _build_yeo_lut() -> dict[str, Any]:
+def _build_yeo_lut(network_order: list[str]) -> dict[str, Any]:
+    palette = YEO_17_RGB if len(network_order) > 7 else YEO_RGB
     R, G, B, I, labels = [], [], [], [], []
     R.append(0)
     G.append(0)
     B.append(0)
     I.append(0)
     labels.append("")
-    for net in YEO_NETWORK_ORDER:
-        rgb = YEO_RGB[net]
+    for net in network_order:
+        rgb = palette.get(net, YEO_RGB.get(YEO_17_TO_MACRO.get(net, "Vis"), (128, 128, 128)))
         R.append(rgb[0])
         G.append(rgb[1])
         B.append(rgb[2])
@@ -125,8 +152,9 @@ def export_atlas_mesh(
     mesh_dir.mkdir(parents=True, exist_ok=True)
     matrices_dir.mkdir(parents=True, exist_ok=True)
 
+    network_order = yeo_network_order(parceler.yeo_networks)
     parcel_ids = parceler.vertex_parcel_ids()
-    yeo_ids = parceler.vertex_yeo_ids()
+    yeo_ids = parceler.vertex_yeo_ids(macro=False)
     lh_parcels, rh_parcels = split_hemispheres(parcel_ids)
     lh_yeo, rh_yeo = split_hemispheres(yeo_ids)
 
@@ -135,7 +163,7 @@ def export_atlas_mesh(
     _write_label_gifti(lh_yeo, mesh_dir / "lh.yeo.gii")
     _write_label_gifti(rh_yeo, mesh_dir / "rh.yeo.gii")
 
-    yeo_lut = _build_yeo_lut()
+    yeo_lut = _build_yeo_lut(network_order)
     parcel_lut = _build_parcel_lut(parceler)
     atlas_doc = {
         "atlas": "Schaefer2018",
@@ -143,7 +171,8 @@ def export_atlas_mesh(
         "yeo_networks": parceler.yeo_networks,
         "yeo_lut": yeo_lut,
         "parcel_lut": parcel_lut,
-        "yeo_order": list(YEO_NETWORK_ORDER),
+        "yeo_order": list(network_order),
+        "macro_order": list(YEO_NETWORK_ORDER),
     }
     atlas_path = matrices_dir / "atlas.json"
     atlas_path.write_text(json.dumps(atlas_doc), encoding="utf-8")
@@ -169,10 +198,10 @@ def export_atlas_mesh(
     write_border_edges(rh_geom, rh_parcels, atlas_sub / "parcels_rh_edges.json")
 
     write_yeo_region_labels(
-        lh_geom, lh_yeo, list(YEO_NETWORK_ORDER), atlas_sub / "labels_lh.json", hemi="lh"
+        lh_geom, lh_yeo, list(network_order), atlas_sub / "labels_lh.json", hemi="lh"
     )
     write_yeo_region_labels(
-        rh_geom, rh_yeo, list(YEO_NETWORK_ORDER), atlas_sub / "labels_rh.json", hemi="rh"
+        rh_geom, rh_yeo, list(network_order), atlas_sub / "labels_rh.json", hemi="rh"
     )
 
     logger.info("Wrote cortical atlas overlays to %s", mesh_dir)

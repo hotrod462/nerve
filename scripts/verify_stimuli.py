@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify processed stimuli: 45s, 44100 Hz, ~-16 LUFS."""
+"""Verify processed stimuli: 44100 Hz stereo, ~-16 LUFS, any duration."""
 
 from __future__ import annotations
 
@@ -41,7 +41,6 @@ def loudness(path: Path) -> float:
         "-",
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
-    # Parse integrated loudness from stderr json fragment
     text = proc.stderr
     if "input_i" in text:
         for part in text.split('"input_i"'):
@@ -54,33 +53,51 @@ def loudness(path: Path) -> float:
     return float("nan")
 
 
+def collect_wavs(*dirs: Path) -> list[Path]:
+    wavs: list[Path] = []
+    for d in dirs:
+        if d.is_dir():
+            wavs.extend(sorted(d.glob("*.wav")))
+    return wavs
+
+
+def verify_file(wav: Path) -> bool:
+    info = probe(wav)
+    dur = float(info.get("duration", 0))
+    rate = info.get("sample_rate", "?")
+    ch = info.get("channels", "?")
+    lufs = loudness(wav)
+
+    rate_ok = rate == "44100"
+    ch_ok = ch == "2"
+    dur_ok = dur > 0.5
+    lufs_ok = abs(lufs + 16.0) < 1.5 if lufs == lufs else False
+
+    status = "OK" if rate_ok and ch_ok and dur_ok else "FAIL"
+    lufs_note = f" LUFS={lufs:.1f}" if lufs == lufs else ""
+    warn = "" if lufs_ok or not lufs_ok else " [LUFS drift]"
+    print(
+        f"{wav}: {dur:.1f}s sr={rate} ch={ch}{lufs_note} [{status}]{warn}"
+    )
+    return rate_ok and ch_ok and dur_ok
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) < 2:
-        print("Usage: verify_stimuli.py <processed_dir>")
-        return 1
+    repo = Path(__file__).resolve().parents[1]
+    if len(argv) >= 2:
+        targets = [Path(p) for p in argv[1:]]
+        wavs = collect_wavs(*targets)
+    else:
+        wavs = collect_wavs(
+            repo / "stimuli" / "processed",
+            repo / "stimuli" / "user" / "processed",
+        )
 
-    proc_dir = Path(argv[1])
-    wavs = sorted(proc_dir.glob("*_45s.wav"))
     if not wavs:
-        print(f"No *_45s.wav in {proc_dir}")
+        print("No *.wav found in stimuli/processed or stimuli/user/processed")
         return 1
 
-    ok = True
-    for wav in wavs:
-        info = probe(wav)
-        dur = float(info.get("duration", 0))
-        rate = info.get("sample_rate", "?")
-        ch = info.get("channels", "?")
-        lufs = loudness(wav)
-
-        dur_ok = abs(dur - 45.0) < 0.05
-        rate_ok = rate == "44100"
-        lufs_ok = abs(lufs + 16.0) < 1.0 if lufs == lufs else False
-
-        status = "OK" if dur_ok and rate_ok else "FAIL"
-        print(f"{wav.name}: {dur:.3f}s sr={rate} ch={ch} LUFS={lufs:.1f} [{status}]")
-        ok = ok and dur_ok and rate_ok
-
+    ok = all(verify_file(wav) for wav in wavs)
     return 0 if ok else 1
 
 

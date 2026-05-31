@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { EngagementTimeline } from "@/components/EngagementTimeline";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BrainViewerProps } from "@/components/BrainViewer";
-import type { EngagementData } from "@/lib/engagement";
+import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
 
 const BrainViewer = dynamic(
   () => import("@/components/BrainViewer").then((m) => m.BrainViewer),
@@ -15,11 +15,15 @@ const BrainViewer = dynamic(
 
 export function TrackEngagementPanel({
   engagement,
+  acoustic,
   totalFrames,
+  runApiBase,
   ...brainProps
 }: BrainViewerProps & {
   engagement?: EngagementData | null;
+  acoustic?: AcousticFeaturesData | null;
   totalFrames: number;
+  runApiBase?: string;
 }) {
   const [frame, setFrame] = useState(0);
 
@@ -31,6 +35,19 @@ export function TrackEngagementPanel({
     setFrame(f);
   }, []);
 
+  const analysisUrls = useMemo(
+    () =>
+      runApiBase
+        ? {
+            vertexYeo: `${runApiBase}/matrices/vertex_yeo.json`,
+            atlasLut: `${runApiBase}/matrices/atlas.json`,
+          }
+        : undefined,
+    [runApiBase]
+  );
+
+  const dominantNetworkTr = engagement?.derived.dominant_network_tr;
+
   return (
     <>
       <div className="mt-5">
@@ -39,11 +56,14 @@ export function TrackEngagementPanel({
           frame={frame}
           onFrameChange={handleFrameChange}
           totalFrames={totalFrames}
+          dominantNetworkTr={dominantNetworkTr}
+          analysisUrls={analysisUrls}
         />
       </div>
       {engagement ? (
         <EngagementTimeline
           engagement={engagement}
+          acoustic={acoustic}
           currentFrame={frame}
           onSeek={handleSeek}
         />

@@ -1,3 +1,5 @@
+import type { VertexYeoData } from "@/lib/brainMapProcessor";
+
 export interface NiivueLabelLut {
   R: number[];
   G: number[];
@@ -75,6 +77,18 @@ export async function loadRegionLabels(url: string): Promise<RegionLabelsData> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load region labels: ${url}`);
   return res.json() as Promise<RegionLabelsData>;
+}
+
+export async function loadAtlasDocument(url: string): Promise<AtlasData> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load atlas: ${url}`);
+  return res.json() as Promise<AtlasData>;
+}
+
+export async function loadVertexYeo(url: string): Promise<VertexYeoData> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load vertex Yeo map: ${url}`);
+  return res.json() as Promise<VertexYeoData>;
 }
 
 type LabelNiivue = Pick<

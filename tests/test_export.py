@@ -56,6 +56,7 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     assert (web_dir / "mesh" / "lh.sulc.gii").is_file()
     assert (web_dir / "matrices" / "parcel_time.json").is_file()
     assert (web_dir / "matrices" / "atlas.json").is_file()
+    assert (web_dir / "matrices" / "vertex_yeo.json").is_file()
     assert (web_dir / "mesh" / "lh.parcels.gii").is_file()
     assert (web_dir / "mesh" / "lh.yeo.gii").is_file()
 
@@ -75,8 +76,8 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     assert (web_dir / "matrices" / "atlas" / "labels_lh.json").is_file()
 
     labels = json.loads((web_dir / "matrices" / "atlas" / "labels_lh.json").read_text())
-    assert labels["atlas"] == "Schaefer2018_Yeo7"
-    assert labels["n_regions"] == 7
+    assert labels["atlas"] == "Schaefer2018_Yeo17"
+    assert labels["n_regions"] >= 7
     assert len(labels["regions"][0]["anchor"]) == 3
 
     yeo_edges = json.loads((web_dir / "matrices" / "atlas" / "yeo_lh_edges.json").read_text())
@@ -85,7 +86,7 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
 
     atlas = json.loads((web_dir / "matrices" / "atlas.json").read_text())
     assert atlas["n_parcels"] == 100
-    assert len(atlas["yeo_lut"]["labels"]) == 8  # background + 7 networks
+    assert len(atlas["yeo_lut"]["labels"]) == 18  # background + 17 networks
     assert len(atlas["parcel_lut"]["labels"]) == 101  # background + 100 parcels
 
     parcel = json.loads((web_dir / "matrices" / "parcel_time.json").read_text())
@@ -94,6 +95,15 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
 
     engagement = json.loads((web_dir / "matrices" / "engagement.json").read_text())
     assert engagement["n_trs"] == 10
+    assert engagement["version"] == 2
     assert engagement["networks"]["Cont"]["headline"] == "Focus"
+    assert "subnetworks" in engagement
     assert len(engagement["networks"]["Vis"]["zscore"]) == 10
+    assert len(engagement["derived"]["dominant_segments"]) >= 1
+    assert len(engagement["derived"]["epoch_segments"]) >= 1
     assert manifest["matrices"]["engagement"] == "matrices/engagement.json"
+    assert manifest["matrices"]["vertex_yeo"] == "matrices/vertex_yeo.json"
+
+    vertex_yeo = json.loads((web_dir / "matrices" / "vertex_yeo.json").read_text())
+    assert len(vertex_yeo["lh"]) == 10242
+    assert len(vertex_yeo["rh"]) == 10242

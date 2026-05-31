@@ -110,9 +110,21 @@ export function StimulusAudio({
     const el = audioRef.current;
     if (!el || !src) return;
     el.muted = muted;
-    if (playing) void el.play().catch(() => undefined);
-    else el.pause();
+    if (playing) {
+      void el.play().catch(() => undefined);
+    } else {
+      el.pause();
+    }
   }, [playing, src, muted]);
+
+  // Unmute when the user presses play (play button is the browser gesture).
+  const wasPlayingRef = useRef(false);
+  useEffect(() => {
+    if (playing && !wasPlayingRef.current) {
+      setMuted(false);
+    }
+    wasPlayingRef.current = playing;
+  }, [playing]);
 
   const toggleMute = () => {
     setMuted((wasMuted) => {

@@ -29,7 +29,7 @@ description: Repo map and workflows for the nerve monorepo. Use when touching sr
 ```bash
 uv sync
 ./scripts/prepare_stimuli.sh
-uv run nerve predict --audio stimuli/processed/musopen_egmont_45s.wav --out data/outputs/runs/egmont/
+uv run nerve predict --audio stimuli/processed/musopen_egmont.wav --out data/outputs/runs/egmont/
 uv run nerve export-web --run data/outputs/runs/egmont/
 cd web && npm install && npm run dev
 ```

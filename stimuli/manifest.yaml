@@ -1,42 +1,47 @@
 bundle: oss_v1
 tracks:
   - id: musopen_egmont
-    path: stimuli/processed/musopen_egmont_45s.wav
+    path: stimuli/processed/musopen_egmont.wav
     genre: classical
     user_supplied: false
     license: "Public Domain"
     source_url: "https://archive.org/details/MusopenCollectionAsFlac"
     source_file: "Beethoven - Egmont Overture Op. 84.flac"
     trim_start: "00:01:30"
+    duration_s: 45
 
   - id: bopd_aint_no_thing
-    path: stimuli/processed/bopd_aint_no_thing_45s.wav
+    path: stimuli/processed/bopd_aint_no_thing.wav
     genre: hip_hop
     user_supplied: false
     license: "CC BY"
     source_url: "https://freemusicarchive.org/music/BOPD/2005_Stayin_Alive_InstruMentals"
     trim_start: "00:00:30"
+    duration_s: 45
 
   - id: pkjazz_spirit_of_the_road
-    path: stimuli/processed/pkjazz_spirit_of_the_road_45s.wav
+    path: stimuli/processed/pkjazz_spirit_of_the_road.wav
     genre: jazz
     user_supplied: false
     license: "CC BY-NC-SA"
     source_url: "https://freemusicarchive.org/music/Pk_jazz_Collective/Pearls_of_our_Life"
     trim_start: "00:00:45"
+    duration_s: 45
 
   - id: pixabay_forever_edm
-    path: stimuli/processed/pixabay_forever_edm_45s.wav
+    path: stimuli/processed/pixabay_forever_edm.wav
     genre: dance_edm
     user_supplied: false
     license: "Pixabay Content License"
     source_url: "https://pixabay.com/music/edm/forever-edm-trance-vibes-256003/"
     trim_start: "00:00:30"
+    duration_s: 45
 
   - id: holizna_endless_grind
-    path: stimuli/processed/holizna_endless_grind_45s.wav
+    path: stimuli/processed/holizna_endless_grind.wav
     genre: hip_hop
     user_supplied: false
     license: "CC0"
     source_url: "https://freemusicarchive.org/music/holiznacc0/city-slacker/endless-grind"
     trim_start: "00:00:20"
+    duration_s: 45

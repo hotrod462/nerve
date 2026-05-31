@@ -5,7 +5,7 @@ import type { MeshBundle, SurfaceMode } from "@/components/BrainViewer";
 import { TrackEngagementPanel } from "./TrackEngagementPanel";
 import { getRun, readJsonFile } from "@/lib/loadRun";
 import type { MeshManifest } from "@/lib/loadRun";
-import type { EngagementData } from "@/lib/engagement";
+import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
 
 function bundleUrl(base: string, rel: string) {
   return `${base}/${rel}`;
@@ -94,6 +94,8 @@ export default async function TrackPage({
 
   const engagementPath = path.join(run.webDir, "matrices", "engagement.json");
   const engagement = readJsonFile<EngagementData>(engagementPath);
+  const acousticPath = path.join(run.webDir, "matrices", "acoustic_features.json");
+  const acoustic = readJsonFile<AcousticFeaturesData>(acousticPath);
 
   const base = `/api/runs/${run.id}`;
   const meshBundle = buildMeshBundle(base, run.manifest.mesh);
@@ -124,6 +126,8 @@ export default async function TrackPage({
 
       <TrackEngagementPanel
         engagement={engagement}
+        acoustic={acoustic}
+        runApiBase={base}
         lhMeshUrl={`${base}/mesh/lh.inflated.gii`}
         rhMeshUrl={`${base}/mesh/rh.inflated.gii`}
         mesh={meshBundle}

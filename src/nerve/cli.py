@@ -98,7 +98,7 @@ def cmd_contrast(args: argparse.Namespace) -> int:
 
 def cmd_export_web(args: argparse.Namespace) -> int:
     run_dir = Path(args.run)
-    export_web_bundle(run_dir, n_parcels=args.parcels)
+    export_web_bundle(run_dir, n_parcels=args.parcels, yeo_networks=args.yeo_networks)
     print(f"[nerve] export-web → {run_dir / 'web'}")
     return 0
 
@@ -182,6 +182,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_export = sub.add_parser("export-web", help="Export GIfTI 4D bundle for web/")
     p_export.add_argument("--run", required=True, help="Run directory with prediction.npz")
     p_export.add_argument("--parcels", type=int, default=400)
+    p_export.add_argument("--yeo-networks", type=int, default=17, choices=[7, 17])
     p_export.set_defaults(func=cmd_export_web)
 
     p_doctor = sub.add_parser("doctor", help="Device and environment smoke test")

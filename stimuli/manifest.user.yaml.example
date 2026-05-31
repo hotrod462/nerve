@@ -1,24 +1,24 @@
-# v2 — personal/commercial tracks (gitignored when copied to manifest.user.yaml)
+# Copy to stimuli/manifest.user.yaml (gitignored) for personal tracks.
+#
+# 1. Put source files in stimuli/user/raw/<id>/  (any .mp3/.wav/.flac name)
+# 2. Run: ./scripts/prepare_stimuli.sh --user
+# 3. Processed output → stimuli/user/processed/<id>.wav
+#
+# Omit duration_s for full-length clips. Optional trim_start skips an intro.
 bundle: user_v2
 tracks:
+  - id: my_song
+    path: stimuli/user/processed/my_song.wav
+    genre: indie
+    user_supplied: true
+    license: "User-owned — not redistributed"
+    # trim_start: "00:00:00"   # optional
+    # duration_s: 45            # optional clip; omit for full length
+
   - id: succession_theme
-    path: stimuli/user/processed/succession_theme_45s.wav
+    path: stimuli/user/processed/succession_theme.wav
     genre: tv_score
     user_supplied: true
     license: "User-owned — not redistributed"
     trim_start: "00:00:15"
-
-  - id: avicii_levels
-    path: stimuli/user/processed/avicii_levels_45s.wav
-    genre: dance_edm
-    user_supplied: true
-    license: "User-owned — not redistributed"
-    trim_start: "00:01:00"
-
-  - id: avicii_wake_me_up
-    path: stimuli/user/processed/avicii_wake_me_up_45s.wav
-    genre: dance_edm
-    user_supplied: true
-    license: "User-owned — not redistributed"
-    trim_start: "00:00:45"
-    # v2 lyrics ablation: set include_lyrics: true + HF token
+    duration_s: 45

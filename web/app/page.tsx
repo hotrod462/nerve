@@ -19,7 +19,7 @@ export default function GalleryPage() {
         <Card>
           <CardContent className="pt-6">
             <pre className="overflow-x-auto text-left text-xs text-muted-foreground">
-              {`uv run nerve predict --audio stimuli/processed/musopen_egmont_45s.wav \\
+              {`uv run nerve predict --audio stimuli/processed/musopen_egmont.wav \\
   --out data/outputs/runs/egmont/
 uv run nerve export-web --run data/outputs/runs/egmont/`}
             </pre>

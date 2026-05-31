@@ -21,8 +21,11 @@ stimuli/raw/*
 stimuli/work/*
 stimuli/processed/*
 stimuli/user/**/*
+stimuli/manifest.user.yaml
 !stimuli/manifest.yaml
 !stimuli/manifest.user.yaml.example
+!stimuli/user/raw/.gitkeep
+!stimuli/user/processed/.gitkeep
 !stimuli/README.md
 !stimuli/LICENSES.md
 
