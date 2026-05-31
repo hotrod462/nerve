@@ -13,7 +13,14 @@ from nerve import __version__
 from nerve.analysis.contrast import compute_contrast
 from nerve.backends.tribe_v2 import TribeBackend
 from nerve.device import build_device_report, resolve_device, smoke_matmul
-from nerve.export.npz_io import load_prediction, save_contrast, save_prediction, write_run_manifest
+from nerve.export.npz_io import (
+    load_prediction,
+    load_subcortical_prediction,
+    save_contrast,
+    save_prediction,
+    save_subcortical_prediction,
+    write_run_manifest,
+)
 from nerve.export.web_bundle import export_web_bundle
 from nerve.types import Modality, StimulusSpec
 
@@ -37,8 +44,28 @@ def _load_manifest_tracks(manifest_path: Path) -> list[dict]:
     return doc.get("tracks", [])
 
 
+def _resolve_audio_path(path: str | Path) -> Path:
+    p = Path(path)
+    if p.is_file():
+        return p
+    repo_path = REPO_ROOT / p
+    if repo_path.is_file():
+        return repo_path
+    raise FileNotFoundError(f"Audio not found: {path}")
+
+
+def _merge_run_manifest(out: Path, updates: dict) -> None:
+    manifest_path = out / "manifest.json"
+    if manifest_path.is_file():
+        existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        existing.update(updates)
+        write_run_manifest(out, existing)
+    else:
+        write_run_manifest(out, updates)
+
+
 def cmd_predict(args: argparse.Namespace) -> int:
-    audio = Path(args.audio)
+    audio = _resolve_audio_path(args.audio)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -50,23 +77,48 @@ def cmd_predict(args: argparse.Namespace) -> int:
         stimulus = StimulusSpec(id=args.stimulus_id, path=audio, modality=Modality.AUDIO)
 
     backend = TribeBackend(cache_dir=cache, device=device)
-    pred = backend.predict_audio(audio, stimulus=stimulus)
-    save_prediction(pred, out / "prediction.npz")
+
+    if args.subcortical_only:
+        sub = backend.predict_subcortical_audio(audio, stimulus=stimulus)
+        save_subcortical_prediction(sub, out / "prediction_subcortical.npz")
+        _merge_run_manifest(
+            out,
+            {
+                "command": "predict",
+                "subcortical_shape": list(sub.data.shape),
+                "subcortical_device_report": sub.metadata.get("device_report"),
+            },
+        )
+        dr = sub.device_report
+        if dr:
+            print(
+                f"[nerve] subcortical-only · device={dr.resolved} · "
+                f"shape={sub.data.shape}"
+            )
+            if not dr.device_ok:
+                print("[nerve] WARNING: device_ok=false — see manifest for details", file=sys.stderr)
+        return 0
+
+    dual = backend.predict_full_audio(audio, stimulus=stimulus)
+    save_prediction(dual.cortical, out / "prediction.npz")
+    save_subcortical_prediction(dual.subcortical, out / "prediction_subcortical.npz")
 
     manifest = {
         "command": "predict",
-        "stimulus": pred.stimulus.to_dict(),
-        "shape": list(pred.data.shape),
-        "inference_mode": pred.inference_mode.value,
-        "device_report": pred.metadata.get("device_report"),
+        "stimulus": dual.cortical.stimulus.to_dict(),
+        "shape": list(dual.cortical.data.shape),
+        "subcortical_shape": list(dual.subcortical.data.shape),
+        "inference_mode": dual.cortical.inference_mode.value,
+        "device_report": dual.cortical.metadata.get("device_report"),
+        "subcortical_device_report": dual.subcortical.metadata.get("device_report"),
     }
     write_run_manifest(out, manifest)
 
-    dr = pred.device_report
+    dr = dual.cortical.device_report
     if dr:
         print(
             f"[nerve] device={dr.resolved} · inference_mode=acoustic_only · "
-            f"shape={pred.data.shape}"
+            f"cortical={dual.cortical.data.shape} · subcortical={dual.subcortical.data.shape}"
         )
         if not dr.device_ok:
             print("[nerve] WARNING: device_ok=false — see manifest for details", file=sys.stderr)
@@ -168,6 +220,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_predict.add_argument("--device", default=None, choices=["auto", "mps", "cpu"])
     p_predict.add_argument("--cache", default=None, help="TRIBE feature cache dir")
     p_predict.add_argument("--stimulus-id", default=None)
+    p_predict.add_argument(
+        "--subcortical-only",
+        action="store_true",
+        help="Run only tribev2-subcortical (skip cortical if already exported)",
+    )
     p_predict.set_defaults(func=cmd_predict)
 
     p_contrast = sub.add_parser("contrast", help="Contrast two prediction runs")

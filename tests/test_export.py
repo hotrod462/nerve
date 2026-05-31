@@ -8,9 +8,22 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nerve.export.npz_io import load_prediction, save_prediction
+from nerve.export.npz_io import (
+    load_prediction,
+    load_subcortical_prediction,
+    save_prediction,
+    save_subcortical_prediction,
+)
 from nerve.export.web_bundle import export_web_bundle
-from nerve.types import BrainPrediction, InferenceMode, Modality, N_VERTICES_FSAVERAGE5, StimulusSpec
+from nerve.types import (
+    BrainPrediction,
+    InferenceMode,
+    Modality,
+    N_VERTICES_FSAVERAGE5,
+    N_VOXELS_SUBCORTICAL,
+    StimulusSpec,
+    SubcorticalPrediction,
+)
 
 
 @pytest.fixture
@@ -36,6 +49,27 @@ def synthetic_prediction() -> BrainPrediction:
     )
 
 
+@pytest.fixture
+def synthetic_subcortical(synthetic_prediction: BrainPrediction) -> SubcorticalPrediction:
+    rng = np.random.default_rng(43)
+    t = synthetic_prediction.data.shape[0]
+    data = rng.standard_normal((t, N_VOXELS_SUBCORTICAL)).astype(np.float32) * 0.1
+    return SubcorticalPrediction(
+        data=data,
+        stimulus=synthetic_prediction.stimulus,
+        inference_mode=InferenceMode.ACOUSTIC_ONLY,
+    )
+
+
+def test_save_load_subcortical_prediction(
+    tmp_path: Path, synthetic_subcortical: SubcorticalPrediction
+):
+    out = tmp_path / "run"
+    save_subcortical_prediction(synthetic_subcortical, out / "prediction_subcortical.npz")
+    loaded = load_subcortical_prediction(out / "prediction_subcortical.npz")
+    assert loaded.data.shape == synthetic_subcortical.data.shape
+
+
 def test_save_load_prediction(tmp_path: Path, synthetic_prediction: BrainPrediction):
     out = tmp_path / "run"
     save_prediction(synthetic_prediction, out / "prediction.npz")
@@ -44,9 +78,14 @@ def test_save_load_prediction(tmp_path: Path, synthetic_prediction: BrainPredict
     assert loaded.stimulus.id == "synthetic"
 
 
-def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction):
+def test_export_web_bundle(
+    tmp_path: Path,
+    synthetic_prediction: BrainPrediction,
+    synthetic_subcortical: SubcorticalPrediction,
+):
     run_dir = tmp_path / "synthetic_run"
     save_prediction(synthetic_prediction, run_dir / "prediction.npz")
+    save_subcortical_prediction(synthetic_subcortical, run_dir / "prediction_subcortical.npz")
     web_dir = export_web_bundle(run_dir, n_parcels=100)
 
     assert (web_dir / "manifest.json").is_file()
@@ -101,6 +140,12 @@ def test_export_web_bundle(tmp_path: Path, synthetic_prediction: BrainPrediction
     assert len(engagement["networks"]["Vis"]["zscore"]) == 10
     assert len(engagement["derived"]["dominant_segments"]) >= 1
     assert len(engagement["derived"]["epoch_segments"]) >= 1
+
+    sub_eng = json.loads((web_dir / "matrices" / "subcortical_engagement.json").read_text())
+    assert sub_eng["n_trs"] == 10
+    assert sub_eng["regions"]["Hippocampus"]["headline"] == "Memory"
+    assert manifest["matrices"]["subcortical_engagement"] == "matrices/subcortical_engagement.json"
+    assert manifest["subcortical"]["n_voxels"] == N_VOXELS_SUBCORTICAL
     assert manifest["matrices"]["engagement"] == "matrices/engagement.json"
     assert manifest["matrices"]["vertex_yeo"] == "matrices/vertex_yeo.json"
 

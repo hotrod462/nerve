@@ -7,7 +7,14 @@ from pathlib import Path
 
 import numpy as np
 
-from nerve.types import BrainPrediction, ContrastResult, InferenceMode, Modality, StimulusSpec
+from nerve.types import (
+    BrainPrediction,
+    ContrastResult,
+    InferenceMode,
+    Modality,
+    StimulusSpec,
+    SubcorticalPrediction,
+)
 
 
 def save_prediction(pred: BrainPrediction, path: str | Path) -> Path:
@@ -41,6 +48,55 @@ def load_prediction(path: str | Path) -> BrainPrediction:
         stim = json.loads(str(z["stimulus_json"]))
         meta = json.loads(str(z["metadata_json"]))
         return BrainPrediction(
+            data=z["data"],
+            stimulus=StimulusSpec(
+                id=stim["id"],
+                path=stim["path"],
+                modality=Modality(stim.get("modality", "audio")),
+                genre=stim.get("genre"),
+                license=stim.get("license"),
+                source_url=stim.get("source_url"),
+                user_supplied=stim.get("user_supplied", False),
+                metadata=stim.get("metadata", {}),
+            ),
+            inference_mode=InferenceMode(str(z["inference_mode"])),
+            tr=float(z["tr"]),
+            space=str(z["space"]),
+            metadata=meta,
+        )
+
+
+def save_subcortical_prediction(pred: SubcorticalPrediction, path: str | Path) -> Path:
+    path = Path(path)
+    if path.suffix != ".npz":
+        path = path / "prediction_subcortical.npz"
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    stim = pred.stimulus.to_dict()
+    meta = dict(pred.metadata)
+    if meta.get("device_report") and hasattr(meta["device_report"], "to_dict"):
+        meta["device_report"] = meta["device_report"].to_dict()
+
+    np.savez_compressed(
+        path,
+        data=pred.data,
+        inference_mode=pred.inference_mode.value,
+        tr=pred.tr,
+        space=pred.space,
+        stimulus_json=json.dumps(stim),
+        metadata_json=json.dumps(meta),
+    )
+    return path
+
+
+def load_subcortical_prediction(path: str | Path) -> SubcorticalPrediction:
+    path = Path(path)
+    if path.is_dir():
+        path = path / "prediction_subcortical.npz"
+    with np.load(path, allow_pickle=False) as z:
+        stim = json.loads(str(z["stimulus_json"]))
+        meta = json.loads(str(z["metadata_json"]))
+        return SubcorticalPrediction(
             data=z["data"],
             stimulus=StimulusSpec(
                 id=stim["id"],

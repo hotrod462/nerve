@@ -13,7 +13,7 @@
 - **MPS is best-effort.** Official TRIBE targets CUDA. Use `nerve doctor` and check `device_report` in artifacts.
 - **First run ~2–3 GB download** (TRIBE + Wav2Vec-BERT). Cache under `data/weights/` via `HF_HOME`.
 - **NumPy pinned** to `2.2.6` for tribev2 compatibility.
-- **Subcortical** requires separate checkpoint (`facebook/tribev2-subcortical`) — not in v1.
+- **Subcortical** uses `facebook/tribev2-subcortical` — saved as `prediction_subcortical.npz`; ROI panel in web UI (no volume mesh yet).
 
 ## Product
 

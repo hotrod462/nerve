@@ -6,6 +6,7 @@ import { TrackEngagementPanel } from "./TrackEngagementPanel";
 import { getRun, readJsonFile } from "@/lib/loadRun";
 import type { MeshManifest } from "@/lib/loadRun";
 import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
+import type { SubcorticalEngagementData } from "@/lib/subcortical";
 
 function bundleUrl(base: string, rel: string) {
   return `${base}/${rel}`;
@@ -96,6 +97,12 @@ export default async function TrackPage({
   const engagement = readJsonFile<EngagementData>(engagementPath);
   const acousticPath = path.join(run.webDir, "matrices", "acoustic_features.json");
   const acoustic = readJsonFile<AcousticFeaturesData>(acousticPath);
+  const subcorticalPath = path.join(
+    run.webDir,
+    "matrices",
+    "subcortical_engagement.json"
+  );
+  const subcortical = readJsonFile<SubcorticalEngagementData>(subcorticalPath);
 
   const base = `/api/runs/${run.id}`;
   const meshBundle = buildMeshBundle(base, run.manifest.mesh);
@@ -126,6 +133,7 @@ export default async function TrackPage({
 
       <TrackEngagementPanel
         engagement={engagement}
+        subcortical={subcortical}
         acoustic={acoustic}
         runApiBase={base}
         lhMeshUrl={`${base}/mesh/lh.inflated.gii`}

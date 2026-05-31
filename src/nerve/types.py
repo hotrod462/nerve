@@ -13,6 +13,7 @@ import numpy as np
 N_VERTICES_FSAVERAGE5 = 20484
 N_VERTICES_LH = 10242
 N_VERTICES_RH = 10242
+N_VOXELS_SUBCORTICAL = 8808
 TR_SECONDS = 1.0
 
 
@@ -138,6 +139,59 @@ class BrainPrediction:
         from nerve.export.npz_io import load_prediction
 
         return load_prediction(path)
+
+
+@dataclass
+class SubcorticalPrediction:
+    """Predicted BOLD in Harvard-Oxford subcortical mask voxels: shape (T, 8808)."""
+
+    data: np.ndarray  # (T, N_VOXELS_SUBCORTICAL)
+    stimulus: StimulusSpec
+    inference_mode: InferenceMode = InferenceMode.ACOUSTIC_ONLY
+    tr: float = TR_SECONDS
+    space: str = "subcortical_harvard_oxford"
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.data.ndim != 2:
+            raise ValueError(f"data must be 2D (T, V), got shape {self.data.shape}")
+        if self.data.shape[1] != N_VOXELS_SUBCORTICAL:
+            raise ValueError(
+                f"expected {N_VOXELS_SUBCORTICAL} subcortical voxels, "
+                f"got {self.data.shape[1]}"
+            )
+
+    @property
+    def n_trs(self) -> int:
+        return int(self.data.shape[0])
+
+    @property
+    def device_report(self) -> DeviceReport | None:
+        raw = self.metadata.get("device_report")
+        if raw is None:
+            return None
+        if isinstance(raw, DeviceReport):
+            return raw
+        return DeviceReport.from_dict(raw)
+
+    def save(self, path: str | Path) -> Path:
+        from nerve.export.npz_io import save_subcortical_prediction
+
+        return save_subcortical_prediction(self, path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> SubcorticalPrediction:
+        from nerve.export.npz_io import load_subcortical_prediction
+
+        return load_subcortical_prediction(path)
+
+
+@dataclass
+class DualBrainPrediction:
+    """Cortical + subcortical TRIBE predictions from the same stimulus."""
+
+    cortical: BrainPrediction
+    subcortical: SubcorticalPrediction
 
 
 @dataclass

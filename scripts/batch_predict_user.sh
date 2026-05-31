@@ -44,8 +44,8 @@ ids=(
       echo "SKIP $id — missing $audio"
       continue
     fi
-    if [[ -f "$out/prediction.npz" && -f "$out/web/manifest.json" ]]; then
-      echo "SKIP $id — already predicted and exported"
+    if [[ -f "$out/prediction.npz" && -f "$out/prediction_subcortical.npz" && -f "$out/web/manifest.json" ]]; then
+      echo "SKIP $id — already predicted (cortical + subcortical) and exported"
       continue
     fi
     echo ""

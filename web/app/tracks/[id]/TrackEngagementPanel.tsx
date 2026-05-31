@@ -7,6 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BrainViewerProps } from "@/components/BrainViewer";
 import type { EngagementData, AcousticFeaturesData } from "@/lib/engagement";
+import type { SubcorticalEngagementData } from "@/lib/subcortical";
+import { SubcorticalEngagementTimeline } from "@/components/SubcorticalEngagementTimeline";
 
 const BrainViewer = dynamic(
   () => import("@/components/BrainViewer").then((m) => m.BrainViewer),
@@ -15,12 +17,14 @@ const BrainViewer = dynamic(
 
 export function TrackEngagementPanel({
   engagement,
+  subcortical,
   acoustic,
   totalFrames,
   runApiBase,
   ...brainProps
 }: BrainViewerProps & {
   engagement?: EngagementData | null;
+  subcortical?: SubcorticalEngagementData | null;
   acoustic?: AcousticFeaturesData | null;
   totalFrames: number;
   runApiBase?: string;
@@ -75,6 +79,26 @@ export function TrackEngagementPanel({
               <AlertDescription>
                 Re-run <code>nerve export-web</code> to generate network
                 engagement traces.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
+      {subcortical ? (
+        <SubcorticalEngagementTimeline
+          subcortical={subcortical}
+          acoustic={acoustic}
+          currentFrame={frame}
+          onSeek={handleSeek}
+        />
+      ) : (
+        <Card className="mt-4">
+          <CardContent className="pt-6">
+            <Alert>
+              <AlertTitle>Subcortical data unavailable</AlertTitle>
+              <AlertDescription>
+                Re-run <code>nerve predict</code> and <code>nerve export-web</code>{" "}
+                to generate subcortical TRIBE predictions.
               </AlertDescription>
             </Alert>
           </CardContent>

@@ -12,15 +12,27 @@ import numpy as np
 from nerve.analysis.acoustic_features import try_extract_acoustic_features
 from nerve.analysis.contrast import compute_contrast
 from nerve.analysis.engagement import compute_engagement
+from nerve.analysis.subcortical_engagement import compute_subcortical_engagement
 from nerve.export.atlas_export import export_atlas_mesh
 from nerve.export.gifti_writer import (
     copy_mesh_templates,
     ensure_fsaverage5_assets,
     write_scalars_4d_gifti,
 )
-from nerve.export.npz_io import load_contrast, load_prediction, write_run_manifest
+from nerve.export.npz_io import (
+    load_contrast,
+    load_prediction,
+    load_subcortical_prediction,
+    write_run_manifest,
+)
 from nerve.parcellation.schaefer import YEO_NETWORK_ORDER, SchaeferParcellation
-from nerve.types import BrainPrediction, ContrastResult, N_VERTICES_FSAVERAGE5, split_hemispheres
+from nerve.types import (
+    BrainPrediction,
+    ContrastResult,
+    N_VERTICES_FSAVERAGE5,
+    SubcorticalPrediction,
+    split_hemispheres,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +104,22 @@ def _write_engagement_json(
     )
 
 
+def _write_subcortical_engagement_json(
+    subcortical: SubcorticalPrediction,
+    matrices_dir: Path,
+) -> None:
+    # TRIBE outputs (T, n_voxels); ROI aggregation expects (n_voxels, T).
+    voxels = subcortical.data.T
+    doc = compute_subcortical_engagement(
+        voxels,
+        inference_mode=subcortical.inference_mode.value,
+    )
+    (matrices_dir / "subcortical_engagement.json").write_text(
+        json.dumps(doc),
+        encoding="utf-8",
+    )
+
+
 def _resolve_stimulus_wav(stimulus_path: str | None) -> Path | None:
     if not stimulus_path:
         return None
@@ -123,13 +151,17 @@ def export_web_bundle(
     matrices_dir.mkdir(parents=True, exist_ok=True)
 
     pred_path = run_dir / "prediction.npz"
+    subcortical_path = run_dir / "prediction_subcortical.npz"
     contrast_path = run_dir / "contrast.npz"
 
     prediction: BrainPrediction | None = None
+    subcortical: SubcorticalPrediction | None = None
     contrast: ContrastResult | None = None
 
     if pred_path.is_file():
         prediction = load_prediction(pred_path)
+    if subcortical_path.is_file():
+        subcortical = load_subcortical_prediction(subcortical_path)
     if contrast_path.is_file():
         contrast = load_contrast(contrast_path)
 
@@ -217,6 +249,15 @@ def export_web_bundle(
             "vertex_yeo": "matrices/vertex_yeo.json",
             "atlas": "matrices/atlas.json",
         }
+        if subcortical is not None:
+            _write_subcortical_engagement_json(subcortical, matrices_dir)
+            manifest["matrices"]["subcortical_engagement"] = (
+                "matrices/subcortical_engagement.json"
+            )
+            manifest["subcortical"] = {
+                "n_voxels": int(subcortical.data.shape[1]),
+                "space": subcortical.space,
+            }
         if acoustic is not None:
             (matrices_dir / "acoustic_features.json").write_text(
                 json.dumps(acoustic),
