@@ -16,13 +16,15 @@ export const metadata = siteMetadata({
     "Side-by-side TRIBE v2 predicted brain engagement for two audio clips, with optional A−B contrast maps.",
 });
 
+export const dynamic = "force-dynamic";
+
 export default async function ComparePage({
   searchParams,
 }: {
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
   const sp = await searchParams;
-  const runs = listRuns();
+  const runs = await listRuns();
   const predRuns = runs.filter((r) => !r.manifest.contrast && r.manifest.stimulus);
   const contrastRuns = runs.filter((r) => r.manifest.contrast);
 

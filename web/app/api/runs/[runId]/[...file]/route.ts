@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { getRun } from "@/lib/loadRun";
+import { isRemoteAssets } from "@/lib/assets";
+
+/** Local dev fallback when NEXT_PUBLIC_NERVE_ASSETS_BASE is unset. */
 
 const MIME: Record<string, string> = {
   ".gii": "application/octet-stream",
@@ -13,7 +16,13 @@ export async function GET(
   { params }: { params: Promise<{ runId: string; file: string[] }> }
 ) {
   const { runId, file } = await params;
-  const run = getRun(runId);
+  if (isRemoteAssets()) {
+    return NextResponse.json(
+      { error: "Use NEXT_PUBLIC_NERVE_ASSETS_BASE URLs in remote mode" },
+      { status: 404 }
+    );
+  }
+  const run = await getRun(runId);
   if (!run) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }

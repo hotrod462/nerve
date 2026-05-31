@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { MeshBundle } from "@/components/BrainViewer";
+import { runWebUrl } from "@/lib/assets";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const BrainViewer = dynamic(
@@ -11,23 +12,31 @@ const BrainViewer = dynamic(
 );
 
 function runMeshBundle(id: string): { lh: string; rh: string; mesh: MeshBundle } {
-  const base = `/api/runs/${id}`;
   return {
-    lh: `${base}/mesh/lh.inflated.gii`,
-    rh: `${base}/mesh/rh.inflated.gii`,
+    lh: runWebUrl(id, "mesh/lh.inflated.gii"),
+    rh: runWebUrl(id, "mesh/rh.inflated.gii"),
     mesh: {
       surfaces: {
-        pial: { lh: `${base}/mesh/lh.pial.gii`, rh: `${base}/mesh/rh.pial.gii` },
-        half: { lh: `${base}/mesh/lh.half.gii`, rh: `${base}/mesh/rh.half.gii` },
-        inflated: { lh: `${base}/mesh/lh.inflated.gii`, rh: `${base}/mesh/rh.inflated.gii` },
+        pial: {
+          lh: runWebUrl(id, "mesh/lh.pial.gii"),
+          rh: runWebUrl(id, "mesh/rh.pial.gii"),
+        },
+        half: {
+          lh: runWebUrl(id, "mesh/lh.half.gii"),
+          rh: runWebUrl(id, "mesh/rh.half.gii"),
+        },
+        inflated: {
+          lh: runWebUrl(id, "mesh/lh.inflated.gii"),
+          rh: runWebUrl(id, "mesh/rh.inflated.gii"),
+        },
       },
       activations: {
-        lh: `${base}/mesh/lh.activations.gii`,
-        rh: `${base}/mesh/rh.activations.gii`,
+        lh: runWebUrl(id, "mesh/lh.activations.gii"),
+        rh: runWebUrl(id, "mesh/rh.activations.gii"),
       },
       sulc: {
-        lh: `${base}/mesh/lh.sulc.gii`,
-        rh: `${base}/mesh/rh.sulc.gii`,
+        lh: runWebUrl(id, "mesh/lh.sulc.gii"),
+        rh: runWebUrl(id, "mesh/rh.sulc.gii"),
       },
     },
   };

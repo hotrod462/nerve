@@ -16,8 +16,10 @@ export const metadata = siteMetadata({
     "Browse in-silico TRIBE v2 brain engagement predictions — cortical Yeo networks, subcortical ROIs, and synced 3D Niivue viewer.",
 });
 
-export default function GalleryPage() {
-  const runs = listRuns().filter((r) => !r.manifest.contrast);
+export const dynamic = "force-dynamic";
+
+export default async function GalleryPage() {
+  const runs = (await listRuns()).filter((r) => !r.manifest.contrast);
 
   if (runs.length === 0) {
     return (

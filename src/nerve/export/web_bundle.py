@@ -133,6 +133,22 @@ def _resolve_stimulus_wav(stimulus_path: str | None) -> Path | None:
     return None
 
 
+def prefer_mp3_stimulus_path(
+    resolved_wav: Path,
+    fallback: str | Path,
+    repo_root: Path | None = None,
+) -> str:
+    """Use a sibling .mp3 for web playback when present; keep WAV for inference/export."""
+    root = repo_root or REPO_ROOT
+    mp3 = resolved_wav.with_suffix(".mp3")
+    if mp3.is_file():
+        try:
+            return str(mp3.relative_to(root)).replace("\\", "/")
+        except ValueError:
+            return str(mp3).replace("\\", "/")
+    return str(fallback).replace("\\", "/")
+
+
 def export_web_bundle(
     run_dir: str | Path,
     n_parcels: int = 400,
@@ -203,6 +219,12 @@ def export_web_bundle(
     if prediction is not None:
         ts = prediction.data
         manifest["stimulus"] = prediction.stimulus.to_dict()
+        wav_path = _resolve_stimulus_wav(prediction.stimulus.path)
+        if wav_path is not None:
+            manifest["stimulus"]["path"] = prefer_mp3_stimulus_path(
+                wav_path,
+                prediction.stimulus.path,
+            )
         manifest["T"] = int(ts.shape[0])
         vmin, vmax = _vmin_vmax(ts)
         manifest["vmin"] = vmin
@@ -239,8 +261,8 @@ def export_web_bundle(
             matrices_dir,
             inference_mode=prediction.inference_mode.value,
         )
-        wav_path = _resolve_stimulus_wav(prediction.stimulus.path)
         acoustic = try_extract_acoustic_features(
+            wav_path,
             wav_path,
             n_trs=int(ts.shape[0]),
             fps=manifest.get("fps", 1),

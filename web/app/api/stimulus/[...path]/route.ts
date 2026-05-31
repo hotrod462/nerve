@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { REPO_ROOT } from "@/lib/loadRun";
+import { isRemoteAssets } from "@/lib/assets";
+
+/** Local dev fallback when NEXT_PUBLIC_NERVE_ASSETS_BASE is unset. */
 
 const MIME: Record<string, string> = {
   ".wav": "audio/wav",
@@ -15,6 +18,12 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path: segments } = await params;
+  if (isRemoteAssets()) {
+    return NextResponse.json(
+      { error: "Use NEXT_PUBLIC_NERVE_ASSETS_BASE URLs in remote mode" },
+      { status: 404 }
+    );
+  }
   const rel = segments.join("/");
   const filePath = path.resolve(REPO_ROOT, rel);
 

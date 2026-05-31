@@ -11,7 +11,7 @@ Nerve wraps **TRIBE v2** to predict in-silico BOLD from audio, export web bundle
 | Path | Stack | Notes |
 |------|-------|-------|
 | `src/nerve/` | Python 3.11, uv, PyTorch | Inference, export — **no React** |
-| `web/` | Next.js 16, Niivue | Reads `{NERVE_OUTPUTS}/runs/*/web/` only — **no PyTorch** |
+| `web/` | Next.js 16, Niivue | Local: `{NERVE_OUTPUTS}/runs/*/web/`; prod: GCS via `NEXT_PUBLIC_NERVE_ASSETS_BASE` — **no PyTorch** |
 | `data/` | gitignored | Weights, caches, run outputs |
 | `stimuli/` | YAML manifests + WAV | OSS + optional user overlay |
 
@@ -48,4 +48,6 @@ Use `uv run`, not bare `python`/`pip`. NumPy is pinned to `2.2.6` for tribev2.
 - `src/nerve/backends/tribe_v2.py` — TRIBE wrappers
 - `src/nerve/export/web_bundle.py` — web bundle export
 - `web/components/BrainViewer.tsx` — 3D viewer
-- `web/lib/loadRun.ts` — reads run manifests from disk
+- `web/lib/loadRun.ts` — run manifests (local disk or GCS)
+- `web/lib/assets.ts` — asset URL helpers for local vs remote
+- `docs/DEPLOY_GCS.md` — Vercel + GCS deployment

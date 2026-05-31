@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { listRuns } from "@/lib/loadRun";
 import { SITE_URL } from "@/lib/geo";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1 },
@@ -26,7 +26,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const runs = listRuns().filter((r) => !r.manifest.contrast);
+  const runs = (await listRuns()).filter((r) => !r.manifest.contrast);
   const trackRoutes: MetadataRoute.Sitemap = runs.map((run) => ({
     url: `${SITE_URL}/tracks/${encodeURIComponent(run.id)}`,
     lastModified: now,

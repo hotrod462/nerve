@@ -1,5 +1,4 @@
-import path from "path";
-import { listRuns, readJsonFile, RUNS_DIR } from "@/lib/loadRun";
+import { listRuns, readOutputsRunsJson, readRunJson } from "@/lib/loadRun";
 import { siteMetadata } from "@/lib/geo";
 import {
   Card,
@@ -29,11 +28,14 @@ export const metadata = siteMetadata({
     "Stimulus × Schaefer parcel mean activation matrix and pairwise L2 similarity across your Nerve library.",
 });
 
-export default function MatrixPage() {
-  const runs = listRuns().filter((r) => r.manifest.stimulus && !r.manifest.contrast);
+export const dynamic = "force-dynamic";
 
-  const matrixPath = path.join(RUNS_DIR, "stimulus_parcel.json");
-  const matrix = readJsonFile<StimulusParcel>(matrixPath);
+export default async function MatrixPage() {
+  const runs = (await listRuns()).filter(
+    (r) => r.manifest.stimulus && !r.manifest.contrast
+  );
+
+  const matrix = await readOutputsRunsJson<StimulusParcel>("stimulus_parcel.json");
 
   if (runs.length === 0 && !matrix) {
     return (
@@ -47,15 +49,19 @@ export default function MatrixPage() {
   }
 
   const ids = matrix?.stimulus_ids ?? runs.map((r) => r.manifest.stimulus?.id ?? r.id);
+
   const rows =
     matrix?.data ??
-    runs.map((r) => {
-      const p = readJsonFile<{ data: number[][] }>(
-        path.join(r.webDir, "matrices", "parcel_time.json")
-      );
-      if (!p?.data) return [];
-      return p.data.map((row) => row.reduce((a, b) => a + b, 0) / row.length);
-    });
+    (await Promise.all(
+      runs.map(async (r) => {
+        const p = await readRunJson<{ data: number[][] }>(
+          r,
+          "matrices/parcel_time.json"
+        );
+        if (!p?.data) return [];
+        return p.data.map((row) => row.reduce((a, b) => a + b, 0) / row.length);
+      })
+    ));
 
   const nParcels = matrix?.n_parcels ?? (rows[0]?.length ?? 100);
 

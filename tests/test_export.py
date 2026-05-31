@@ -14,7 +14,7 @@ from nerve.export.npz_io import (
     save_prediction,
     save_subcortical_prediction,
 )
-from nerve.export.web_bundle import export_web_bundle
+from nerve.export.web_bundle import export_web_bundle, prefer_mp3_stimulus_path
 from nerve.types import (
     BrainPrediction,
     InferenceMode,
@@ -158,3 +158,23 @@ def test_export_web_bundle(
     vertex_yeo = json.loads((web_dir / "matrices" / "vertex_yeo.json").read_text())
     assert len(vertex_yeo["lh"]) == 10242
     assert len(vertex_yeo["rh"]) == 10242
+
+
+def test_prefer_mp3_stimulus_path(tmp_path: Path):
+    repo = tmp_path / "repo"
+    stimuli = repo / "stimuli" / "processed"
+    stimuli.mkdir(parents=True)
+    wav = stimuli / "demo.wav"
+    wav.write_bytes(b"fake")
+    mp3 = stimuli / "demo.mp3"
+    mp3.write_bytes(b"fake")
+
+    assert (
+        prefer_mp3_stimulus_path(wav, "stimuli/processed/demo.wav", repo_root=repo)
+        == "stimuli/processed/demo.mp3"
+    )
+    mp3.unlink()
+    assert (
+        prefer_mp3_stimulus_path(wav, "stimuli/processed/demo.wav", repo_root=repo)
+        == "stimuli/processed/demo.wav"
+    )
